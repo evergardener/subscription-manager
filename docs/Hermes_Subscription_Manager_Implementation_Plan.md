@@ -11,7 +11,8 @@
 - P0 代码、依赖锁定、本地质量检查、本地 Docker 完整栈和局域网 Docker 交叉验证已通过；完整证据见 [P0_VERIFICATION.md](./P0_VERIFICATION.md)。
 - PostgreSQL 已固定为 `postgres:16.14-alpine3.22`，解决浮动标签在旧版 seccomp 宿主机上的兼容性和可复现性问题。
 - GitHub Actions 尚未在 GitHub runner 上实际运行，因此 P0 保持“待补 CI 权威证据”，P1 未开始。
-- 后续开发以本机 Docker Desktop Linux Engine 为主要集成验证环境，并在每个已验证变更后自动创建 Git 提交；仓库约定见根目录 [AGENTS.md](../AGENTS.md)。
+- 项目计划迁移到其他主机继续开发；目标主机使用其本地 Docker Linux Engine 作为主要集成验证环境，迁移步骤见 [DEVELOPMENT_HOST_HANDOFF.md](./DEVELOPMENT_HOST_HANDOFF.md)。
+- 每个已验证变更后自动创建 Git 提交；仓库约定见根目录 [AGENTS.md](../AGENTS.md)。
 
 ## 2. 架构理解
 

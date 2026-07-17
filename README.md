@@ -93,7 +93,7 @@ It runs Backend Ruff/format/mypy/pytest/Alembic offline generation, Frontend lin
 
 ## Development workflow
 
-- Use the locally installed Docker Desktop Linux Engine for integration and runtime validation.
+- Use the Docker Linux Engine installed on the active development host for integration and runtime validation.
 - Keep changes and generated project state inside this repository.
 - Complete the checks relevant to each coherent change before committing it.
 - Automatically create one descriptive Git commit for every validated change; do not push unless explicitly requested.
@@ -111,6 +111,6 @@ It runs Backend Ruff/format/mypy/pytest/Alembic offline generation, Frontend lin
 - [Development specification](docs/Hermes_Subscription_Manager_Development_Spec.md)
 - [Implementation plan](docs/Hermes_Subscription_Manager_Implementation_Plan.md)
 - [P0 verification record](docs/P0_VERIFICATION.md)
-- [Mac development handoff](docs/MAC_DEVELOPMENT_HANDOFF.md)
+- [Development host migration handoff](docs/DEVELOPMENT_HOST_HANDOFF.md)
 
 Any behavior that deviates from the approved specification must update the Markdown decision record before code changes are accepted.

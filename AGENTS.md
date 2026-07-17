@@ -10,7 +10,8 @@ These instructions apply to all work in this repository.
 
 ## Validation
 
-- Use the locally installed Docker Desktop Linux Engine as the primary integration environment.
+- Use the Docker Linux Engine installed on the active development host as the primary integration environment.
+- After moving the repository to another host, rebuild dependencies and images from lockfiles; do not reuse virtual environments, `node_modules`, or Docker volumes from the previous host.
 - Run the checks relevant to every change. For cross-cutting or infrastructure changes, run the complete gate with `./scripts/verify-p0.ps1` and the Docker Compose smoke tests.
 - Use the isolated Compose project name `hermes-subscription-manager-local` for automated local validation.
 - Do not claim GitHub Actions passed unless an actual GitHub Actions run is available.
