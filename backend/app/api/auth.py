@@ -77,8 +77,22 @@ async def login(
 
 
 @router.get("/session")
-async def current_session(actor: Actor = Depends(get_actor)) -> dict[str, str]:
-    return {"actor_type": actor.actor_type.value, "actor_id": actor.actor_id}
+async def current_session(
+    actor: Actor = Depends(get_actor), session: AsyncSession = Depends(get_session)
+) -> dict[str, str]:
+    if actor.session_id is None:
+        raise HTTPException(status_code=401, detail="browser session required")
+    record = await session.get(Session, actor.session_id, with_for_update=True)
+    if record is None or record.revoked_at is not None:
+        raise HTTPException(status_code=401, detail="session is no longer active")
+    csrf = new_secret()
+    record.csrf_hash = sha256(csrf)
+    await session.commit()
+    return {
+        "actor_type": actor.actor_type.value,
+        "actor_id": actor.actor_id,
+        "csrf_token": csrf,
+    }
 
 
 @router.post("/logout", status_code=204)

@@ -18,6 +18,11 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     assert login.status_code == 200
     csrf = login.json()["csrf_token"]
 
+    restored_session = await client.get("/api/v1/auth/session")
+    assert restored_session.status_code == 200
+    assert restored_session.json()["csrf_token"] != csrf
+    csrf = restored_session.json()["csrf_token"]
+
     rejected = await client.post("/api/v1/categories", json={"name": "Cloud"})
     assert rejected.status_code == 403
     assert rejected.json()["code"] == "http_403"
