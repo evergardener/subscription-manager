@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./App";
 import { SessionProvider } from "./app/session";
+import { OfflineProvider } from "./offline/OfflineProvider";
 import "./styles.css";
 
 const queryClient = new QueryClient();
@@ -18,7 +19,7 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <SessionProvider><App /></SessionProvider>
+        <OfflineProvider><SessionProvider><App /></SessionProvider></OfflineProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

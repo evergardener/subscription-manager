@@ -48,6 +48,9 @@ input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgb(23 107 97 / 
 .spinner { width:2rem; height:2rem; border:3px solid var(--primary-soft); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
 .link-button { display:inline-grid; place-items:center; padding:0 .95rem; text-decoration:none; }
 .inline-state { display:flex; min-height:18rem; align-items:center; justify-content:center; gap:.8rem; color:var(--muted); }
+.offline-banner { display:flex; align-items:center; gap:.65rem; margin-bottom:1rem; padding:.75rem .9rem; border:1px solid #e7c46e; border-radius:.75rem; color:#6b4f10; background:#fff6d9; }
+.offline-banner span { font-size:.84rem; }
+body[data-offline="true"] button:disabled { cursor:not-allowed; filter:grayscale(.35); opacity:.5; }
 .metric-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1rem; }
 .metric-card,.panel,.subscription-card { border:1px solid var(--border); border-radius:1rem; background:var(--surface); box-shadow:0 .8rem 2.5rem rgb(38 67 63 / 4%); }
 .metric-card { display:grid; gap:.55rem; min-height:9.5rem; align-content:center; padding:1.25rem; }
@@ -161,6 +164,8 @@ legend { padding:0 .35rem; font-weight:750; }
 .scope-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; }
 .scope-grid label { display:flex; grid-template-columns:auto 1fr; align-items:center; gap:.45rem; font-size:.78rem; }
 .scope-grid input { width:auto; }
+.cache-toggle { display:flex; grid-template-columns:auto 1fr; align-items:center; gap:.5rem; }
+.cache-toggle input { width:auto; }
 .token-reveal code { display:block; padding:1rem; border-radius:.7rem; overflow-wrap:anywhere; color:#d8fff8; background:#102f2b; user-select:all; }
 code { padding:.12rem .25rem; border-radius:.25rem; background:var(--primary-soft); }
 .empty-card.compact { min-height:14rem; border:0; box-shadow:none; }

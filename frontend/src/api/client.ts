@@ -22,6 +22,9 @@ export function setCsrfToken(value: string | null) {
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = (init.method ?? "GET").toUpperCase();
+  if (!new Set(["GET", "HEAD", "OPTIONS"]).has(method) && !navigator.onLine) {
+    throw new ApiError(503, { code: "offline_write_blocked", message: "离线时只允许查看缓存数据" });
+  }
   const headers = new Headers(init.headers);
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -29,11 +32,19 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   if (!new Set(["GET", "HEAD", "OPTIONS"]).has(method) && csrfToken) {
     headers.set("X-CSRF-Token", csrfToken);
   }
-  const response = await fetch(path, {
-    ...init,
-    headers,
-    credentials: "same-origin",
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, { ...init, headers, credentials: "same-origin" });
+  } catch (reason) {
+    if (method === "GET") {
+      const cached = await readBusinessCache<T>(path);
+      if (cached !== undefined) {
+        window.dispatchEvent(new Event("hermes-cache-fallback"));
+        return cached;
+      }
+    }
+    throw reason;
+  }
   if (!response.ok) {
     let body: ApiErrorBody = { message: `请求失败（${response.status}）` };
     try {
@@ -46,5 +57,8 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   if (response.status === 204) {
     return undefined as T;
   }
-  return (await response.json()) as T;
+  const value = (await response.json()) as T;
+  if (method === "GET") await writeBusinessCache(path, value);
+  return value;
 }
+import { readBusinessCache, writeBusinessCache } from "../offline/cache";

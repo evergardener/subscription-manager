@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useSession } from "./session";
+import { useOffline } from "../offline/OfflineProvider";
 
 const navigation = [
   ["/", "总览", "⌂"],
@@ -12,6 +13,7 @@ const navigation = [
 
 export function AppShell() {
   const { session, signOut } = useSession();
+  const { offline, stale } = useOffline();
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -29,7 +31,7 @@ export function AppShell() {
           <button className="icon-button" onClick={() => void signOut()} aria-label="退出登录">↪</button>
         </div>
       </aside>
-      <main className="page"><Outlet /></main>
+      <main className="page">{offline && <div className="offline-banner" role="status"><strong>离线只读</strong><span>{stale ? "正在显示最近缓存，数据可能已过期。" : "写操作已禁用；可继续查看已缓存数据。"}</span></div>}<Outlet /></main>
       <nav className="bottom-nav" aria-label="移动端主导航">
         {navigation.map(([to, label, icon]) => (
           <NavLink key={to} to={to} end={to === "/"}>

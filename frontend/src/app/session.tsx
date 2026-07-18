@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import { getSession, login, logout, type Session } from "../api/auth";
 import { ApiError, setCsrfToken } from "../api/client";
+import { clearBusinessCache } from "../offline/cache";
 
 type SessionState = {
   session: Session | null;
@@ -46,10 +47,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await logout();
-    setCsrfToken(null);
-    setSession(null);
-    queryClient.clear();
+    try {
+      await logout();
+    } finally {
+      setCsrfToken(null);
+      setSession(null);
+      queryClient.clear();
+      await clearBusinessCache();
+    }
   }, [queryClient]);
 
   const value = useMemo(

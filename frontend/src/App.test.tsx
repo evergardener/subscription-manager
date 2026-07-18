@@ -5,13 +5,14 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { App } from "./App";
 import { SessionProvider } from "./app/session";
+import { OfflineProvider } from "./offline/OfflineProvider";
 
 function renderApp(path = "/") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[path]}>
-        <SessionProvider><App /></SessionProvider>
+        <OfflineProvider><SessionProvider><App /></SessionProvider></OfflineProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
