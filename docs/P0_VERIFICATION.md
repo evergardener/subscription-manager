@@ -1,7 +1,7 @@
 # P0 验证记录
 
 日期：2026-07-18
-状态：**P0 实现和本地 Docker 完整验证已通过；GitHub Actions 实际运行证据待补齐，P1 尚未开始**
+状态：**P0 已完成：新开发主机复验和 GitHub Actions 权威验证均已通过；P1 尚未开始**
 
 ## 1. 交付范围
 
@@ -107,21 +107,24 @@ P0 未创建任何业务表，P1 功能未提前实现。
 - `postgres:16.14-alpine3.22` 在默认 seccomp 下正常运行。
 - 项目 Compose 与 CI 均已固定到 `postgres:16.14-alpine3.22`，兼顾当前补丁版本、默认隔离和构建可复现性。
 
-## 6. 尚待补齐的证据
+## 6. 新开发主机与 GitHub Actions 验证
 
-GitHub Actions 工作流尚未在 GitHub runner 上实际执行，因为当前项目还未发布到远程仓库。Backend、Frontend、Migration 和 Compose 对应命令已在本地 Docker 和局域网 Docker 环境通过，但这不能冒充 GitHub Actions 的实际绿色运行记录。
+2026-07-18 在新开发主机从 `uv.lock` 和 `package-lock.json` 全新重建依赖，并使用 Docker Desktop Linux Engine 29.6.1、Docker Compose 5.3.0 复验。Backend 5 tests、Frontend 2 tests、全部 lint/typecheck/build、Compose 镜像构建、完整栈、真实 PostgreSQL ready check、迁移往返、表检查、request ID 和 scheduler heartbeat 均通过；结构化日志未发现 `Traceback`、`ERROR` 或 `CRITICAL`。
 
-后续应执行：
+项目随后首次推送到 `evergardener/subscription-manager`。提交 `cad4b9a05461448185cd8d57d61d22511bbc5830` 的 [GitHub Actions CI 运行](https://github.com/evergardener/subscription-manager/actions/runs/29641921957) 于 2026-07-18 完成，结论为 `success`：
 
-1. 在全新 checkout 中运行完整验证脚本和 Compose 冒烟测试。
-2. 推送到 GitHub 后确认 `backend`、`frontend`、`compose` 三个 CI job 全绿。
-3. 将 CI 链接或 commit SHA 补充到本文件。
-4. 只有上述证据补齐后，才将 P0 标记为完整关闭并开始 P1。
+| Job | 结果 |
+| --- | --- |
+| `backend` | 通过，包括 PostgreSQL service、依赖同步、Ruff、mypy、5 tests 和 migration 往返 |
+| `frontend` | 通过，包括依赖审计、lint、typecheck、2 tests 和生产构建 |
+| `compose` | 通过，Compose 官方配置解析成功 |
+
+至此 P0 的本地、新主机、跨主机 Docker 和 GitHub runner 证据均已闭环，P0 正式关闭。
 
 ## 7. 开发主机迁移状态
 
 - P0 基线已提交，基线提交为 `74743c3`。
-- 当前计划迁移到其他开发主机，目标操作系统尚不限定。
-- 迁移必须保留 Git 历史，并从 lockfile 重建 Python、Node 和 Docker 环境。
+- 新开发主机迁移和从 lockfile 重建已完成，Git 历史已保留。
+- 本地 `main` 已关联并推送到 `https://github.com/evergardener/subscription-manager.git`。
 - 源主机的 `.venv`、`node_modules`、`.cache`、构建产物、容器和 Docker volume 不属于迁移内容。
-- 目标主机完成 [开发主机迁移交接](./DEVELOPMENT_HOST_HANDOFF.md) 中的完整复验前，不开始 P1。
+- 新开发主机与 GitHub Actions 复验已完成，可以开始 P1。

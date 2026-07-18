@@ -13,7 +13,7 @@
 - P0 代码、依赖锁、静态检查、单元测试、镜像构建和完整 Compose 运行验证已通过。
 - P0 基线提交：`74743c3 chore: establish validated P0 baseline`。
 - P1 尚未开始，没有业务 migration、领域模型、认证或第二阶段 API。
-- GitHub Actions 尚无实际运行记录，因此 P0 仍待补 CI 权威证据。
+- 新开发主机复验已经完成；提交 `cad4b9a` 的 GitHub Actions 三个 job 全部通过，P0 已正式关闭。
 - 每个后续已验证变更都应自动创建独立 Git 提交，不自动推送。
 
 完整证据见 [P0_VERIFICATION.md](./P0_VERIFICATION.md)。
