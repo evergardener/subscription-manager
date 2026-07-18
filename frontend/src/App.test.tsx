@@ -36,7 +36,7 @@ test("logs in and opens the protected application shell", async () => {
       status: 200,
       headers: { "Content-Type": "application/json" },
     }))
-    .mockResolvedValueOnce(new Response(JSON.stringify({ expected: {}, actual: {} }), { status: 200, headers: { "Content-Type": "application/json" } }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ expected: {}, actual: {}, by_vendor: [], by_category: [] }), { status: 200, headers: { "Content-Type": "application/json" } }))
     .mockResolvedValueOnce(new Response(JSON.stringify({ items: [], page: 1, page_size: 100, total: 0 }), { status: 200, headers: { "Content-Type": "application/json" } }))
     .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } }));
   renderApp("/login");

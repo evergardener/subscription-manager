@@ -614,9 +614,84 @@ async def analytics_summary(
             select(Payment.currency, func.sum(Payment.amount)).group_by(Payment.currency)
         )
     ).all()
+    expected_vendors = (
+        await session.execute(
+            select(Subscription.vendor, BillingEvent.currency, func.sum(BillingEvent.amount))
+            .join(BillingEvent, BillingEvent.subscription_id == Subscription.id)
+            .where(BillingEvent.status == EventStatus.PLANNED, BillingEvent.amount.is_not(None))
+            .group_by(Subscription.vendor, BillingEvent.currency)
+        )
+    ).all()
+    actual_vendors = (
+        await session.execute(
+            select(Subscription.vendor, Payment.currency, func.sum(Payment.amount))
+            .join(Payment, Payment.subscription_id == Subscription.id)
+            .group_by(Subscription.vendor, Payment.currency)
+        )
+    ).all()
+    expected_categories = (
+        await session.execute(
+            select(Category.name, BillingEvent.currency, func.sum(BillingEvent.amount))
+            .select_from(Subscription)
+            .outerjoin(Category, Category.id == Subscription.category_id)
+            .join(BillingEvent, BillingEvent.subscription_id == Subscription.id)
+            .where(BillingEvent.status == EventStatus.PLANNED, BillingEvent.amount.is_not(None))
+            .group_by(Category.name, BillingEvent.currency)
+        )
+    ).all()
+    actual_categories = (
+        await session.execute(
+            select(Category.name, Payment.currency, func.sum(Payment.amount))
+            .select_from(Subscription)
+            .outerjoin(Category, Category.id == Subscription.category_id)
+            .join(Payment, Payment.subscription_id == Subscription.id)
+            .group_by(Category.name, Payment.currency)
+        )
+    ).all()
+
+    def breakdown(
+        expected: list[tuple[str | None, str, Decimal]],
+        actual: list[tuple[str | None, str, Decimal]],
+        fallback: str,
+    ) -> list[dict[str, str]]:
+        values: dict[tuple[str, str], dict[str, str]] = {}
+        for label, currency, amount in expected:
+            key = (label or fallback, currency)
+            values[key] = {
+                "label": key[0],
+                "currency": currency,
+                "expected": str(amount),
+                "actual": "0",
+            }
+        for label, currency, amount in actual:
+            key = (label or fallback, currency)
+            values.setdefault(
+                key,
+                {"label": key[0], "currency": currency, "expected": "0", "actual": "0"},
+            )["actual"] = str(amount)
+        return sorted(values.values(), key=lambda item: (item["currency"], item["label"]))
+
     return {
         "expected": {currency: str(amount) for currency, amount in expected_rows},
         "actual": {currency: str(amount) for currency, amount in actual_rows},
+        "by_vendor": breakdown(
+            [
+                (label, currency, amount)
+                for label, currency, amount in expected_vendors
+                if currency is not None and amount is not None
+            ],
+            [(label, currency, amount) for label, currency, amount in actual_vendors],
+            "未填写供应商",
+        ),
+        "by_category": breakdown(
+            [
+                (label, currency, amount)
+                for label, currency, amount in expected_categories
+                if currency is not None and amount is not None
+            ],
+            [(label, currency, amount) for label, currency, amount in actual_categories],
+            "未分类",
+        ),
     }
 
 

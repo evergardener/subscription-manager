@@ -73,6 +73,10 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     assert subscriptions.status_code == 200
     assert subscriptions.json()["items"][0]["billing_plan"]["currency"] == "USD"
     assert subscriptions.json()["items"][0]["billing_plan"]["amount"] == "10.000000"
+    analytics = await client.get("/api/v1/analytics/summary")
+    assert analytics.status_code == 200
+    assert analytics.json()["by_vendor"][0]["currency"] == "USD"
+    assert analytics.json()["by_vendor"][0]["label"] == "未填写供应商"
 
     transition = await client.post(
         f"/api/v1/subscriptions/{created.json()['id']}/status-transitions",
