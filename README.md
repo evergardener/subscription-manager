@@ -4,13 +4,13 @@ Self-hosted subscription and digital-service lifecycle manager. This repository 
 
 ## Current status
 
-P0 through P3 are implemented. The backend now provides the domain schema, authentication, core subscription APIs, persistent billing events, payments, audit logs, reminder rules, and the independent ntfy-capable scheduler. P4 UI work has not started, so the frontend remains the architecture health screen.
+P0 through P4 are implemented. The backend provides the domain schema, authentication, core subscription APIs, persistent billing events, payments, audit logs, reminder rules, and the independent ntfy-capable scheduler. The frontend is now an authenticated responsive PWA with the complete MVP management workflow and offline read-only behavior.
 
 Included:
 
 - FastAPI backend with JSON logs, request IDs, OpenAPI, and live/ready health checks.
 - Independent APScheduler process using the same backend image.
-- React/TypeScript/Vite frontend with a typed health probe.
+- React/TypeScript/Vite PWA with Dashboard, subscriptions, events, analytics, settings, and API Token management.
 - Alembic-managed P1 schema; no ORM auto-create path.
 - Docker Compose services for PostgreSQL, migration, backend, scheduler, and frontend.
 - Session/CSRF for the Web UI and scoped API Tokens for Hermes, scheduler, and automation clients.
@@ -23,7 +23,7 @@ subscription-manager/
 ├─ backend/               FastAPI, scheduler, Alembic, tests
 ├─ frontend/              React/Vite application and tests
 ├─ docs/                  approved specification and implementation plan
-├─ scripts/verify-p0.ps1  local P0 verification
+├─ scripts/              local milestone verification gates
 ├─ compose.yml
 └─ .github/workflows/ci.yml
 ```
@@ -110,6 +110,15 @@ For the P1–P3 gate, point `TEST_DATABASE_URL` at a disposable PostgreSQL datab
 
 This additionally enforces 80% domain/service coverage, checks Alembic metadata drift, and performs a destructive downgrade/upgrade cycle only against the explicitly named disposable test database.
 
+For P4, start the full Compose stack and additionally run the browser acceptance suite:
+
+```powershell
+cd frontend
+npm run test:e2e
+```
+
+It exercises the authenticated workflow on desktop and at 360 px, including offline read-only mode. See [P4 verification record](docs/P4_VERIFICATION.md) for the full evidence and prerequisites.
+
 ## Development workflow
 
 - Use the Docker Linux Engine installed on the active development host for integration and runtime validation.
@@ -130,6 +139,8 @@ This additionally enforces 80% domain/service coverage, checks Alembic metadata 
 - [Development specification](docs/Hermes_Subscription_Manager_Development_Spec.md)
 - [Implementation plan](docs/Hermes_Subscription_Manager_Implementation_Plan.md)
 - [P0 verification record](docs/P0_VERIFICATION.md)
+- [P3 verification record](docs/P3_VERIFICATION.md)
+- [P4 verification record](docs/P4_VERIFICATION.md)
 - [Development host migration handoff](docs/DEVELOPMENT_HOST_HANDOFF.md)
 
 Any behavior that deviates from the approved specification must update the Markdown decision record before code changes are accepted.

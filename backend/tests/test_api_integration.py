@@ -144,6 +144,19 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     assert retained_rule is not None
     assert not retained_rule.enabled
 
+    archived = await client.post(
+        f"/api/v1/subscriptions/{created.json()['id']}/archive",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert archived.status_code == 200
+    assert archived.json()["archived_at"] is not None
+    restored_archive = await client.post(
+        f"/api/v1/subscriptions/{created.json()['id']}/restore",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert restored_archive.status_code == 200
+    assert restored_archive.json()["archived_at"] is None
+
     audit = await client.get("/api/v1/audit-logs")
     assert audit.status_code == 200
     assert audit.json()["items"][0]["actor_type"] == "user"

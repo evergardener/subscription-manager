@@ -438,6 +438,7 @@ async def set_archive(
     item = await session.get(Subscription, subscription_id, with_for_update=True)
     if item is None:
         raise HTTPException(status_code=404, detail="subscription not found")
+    plan = await current_plan(session, item.id)
     before = model_dict(item)
     item.archived_at = datetime.now(UTC) if archived else None
     item.version += 1
@@ -451,7 +452,7 @@ async def set_archive(
         before,
         model_dict(item),
     )
-    result = subscription_json(item, await current_plan(session, item.id))
+    result = subscription_json(item, plan)
     await session.commit()
     return result
 

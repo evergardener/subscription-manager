@@ -12,7 +12,9 @@
 - PostgreSQL 已固定为 `postgres:16.14-alpine3.22`，解决浮动标签在旧版 seccomp 宿主机上的兼容性和可复现性问题。
 - 新开发主机已从 lockfile 重建并完成本地质量门、Docker Linux Engine 完整栈和迁移往返复验。
 - 提交 `cad4b9a` 的 GitHub Actions `backend`、`frontend`、`compose` 三个 job 已全部通过，P0 已关闭。
-- P1、P2、P3 已实现并通过本地 PostgreSQL、完整 Compose 垂直切片和自动化测试；最终 GitHub Actions 证据见 [P3_VERIFICATION.md](./P3_VERIFICATION.md)。按计划在 P3 后停止，P4 尚未开始。
+- P1、P2、P3 已实现并通过本地 PostgreSQL、完整 Compose 垂直切片和自动化测试；最终 GitHub Actions 证据见 [P3_VERIFICATION.md](./P3_VERIFICATION.md)。
+- P4 已实现登录、Dashboard、Subscriptions、Detail、Upcoming Events、Analytics、Settings、Token 管理与离线只读 PWA；桌面端和 360 px 端到端验收均通过，证据见 [P4_VERIFICATION.md](./P4_VERIFICATION.md)。
+- 当前进入 P5 Hermes 阶段。
 - 每个已验证变更后自动创建 Git 提交；仓库约定见根目录 [AGENTS.md](../AGENTS.md)。
 
 ## 2. 架构理解
