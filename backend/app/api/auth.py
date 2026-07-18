@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +26,19 @@ class TokenCreate(BaseModel):
     actor_id: str = Field(min_length=1, max_length=200)
     scopes: list[str] = Field(min_length=1)
     expires_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_machine_scopes(self) -> "TokenCreate":
+        allowed = {
+            "subscriptions:read",
+            "subscriptions:write",
+            "payments:write",
+            "analytics:read",
+            "audit:read",
+        }
+        if self.actor_type == ActorType.HERMES and not set(self.scopes) <= allowed:
+            raise ValueError("Hermes tokens contain an unsupported or privileged scope")
+        return self
 
 
 @router.post("/bootstrap", status_code=201)

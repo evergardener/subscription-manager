@@ -118,6 +118,14 @@ For P4 and later UI changes, run the isolated browser acceptance gate:
 
 It starts a separate Compose project on ports 18000/18080 with a fresh disposable database, exercises the authenticated workflow on desktop and at 360 px, then removes only that project's containers and volume. This avoids false results from an existing administrator or retained application data. See [P4 verification record](docs/P4_VERIFICATION.md) for the full evidence and prerequisites.
 
+For the P5 Hermes API and actor boundary, run:
+
+```powershell
+./scripts/verify-hermes.ps1 -PythonPath ./backend/.venv/Scripts/python.exe
+```
+
+The Hermes Skill is in `hermes/`. Runtime configuration uses `HERMES_SUBSCRIPTION_API_URL` and `HERMES_SUBSCRIPTION_API_TOKEN`; never commit the token. See [P5 verification record](docs/P5_VERIFICATION.md).
+
 ## Development workflow
 
 - Use the Docker Linux Engine installed on the active development host for integration and runtime validation.

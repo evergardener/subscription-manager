@@ -30,7 +30,12 @@ from app.services.business import (
     model_dict,
     replace_plan,
 )
-from app.services.reminders import _deliver_one, claim_deliveries, generate_deliveries
+from app.services.reminders import (
+    _deliver_one,
+    claim_deliveries,
+    generate_deliveries,
+    scheduled_at,
+)
 
 
 async def test_business_services_generate_replace_audit_and_idempotency(
@@ -144,7 +149,7 @@ async def test_reminder_services_generate_claim_send_retry_and_dead(
     )
     db_session.add_all([event, rule])
     await db_session.commit()
-    now = datetime.now(UTC) + timedelta(hours=2)
+    now = scheduled_at(event.event_date, rule.offset_days) + timedelta(minutes=1)
     assert await generate_deliveries(db_session, settings, now) == (1, 0)
     assert await generate_deliveries(db_session, settings, now) == (0, 0)
     claimed = await claim_deliveries(db_session, settings, now)

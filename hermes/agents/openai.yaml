@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hermes Subscription Manager"
+  short_description: "Safely query and manage personal subscriptions"
+  default_prompt: "Use $hermes to review my upcoming renewals and safely manage subscriptions."
