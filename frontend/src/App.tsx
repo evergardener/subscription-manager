@@ -4,11 +4,11 @@ import { AppShell } from "./app/AppShell";
 import { useSession } from "./app/session";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { SubscriptionsPage } from "./pages/SubscriptionsPage";
 import { SubscriptionDetailPage } from "./pages/SubscriptionDetailPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { EventsPage } from "./pages/EventsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 function ProtectedApp() {
   const { session, isLoading, error } = useSession();
@@ -28,7 +28,7 @@ export function App() {
         <Route path="subscriptions/:subscriptionId" element={<SubscriptionDetailPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
-        <Route path="settings" element={<PlaceholderPage title="设置" description="管理会话、通知和 API Token。" />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
