@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { listSubscriptions, upcomingEvents } from "../api/business";
+import { latestCnyRates, listSubscriptions, upcomingEvents } from "../api/business";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
 import { Money } from "../components/Money";
 
@@ -10,6 +10,7 @@ const eventLabels: Record<string, string> = { billing: "续费", expiry: "到期
 export function DashboardPage() {
   const subscriptions = useQuery({ queryKey: ["subscriptions", "dashboard"], queryFn: ({ signal }) => listSubscriptions("", signal) });
   const events = useQuery({ queryKey: ["events", 62], queryFn: ({ signal }) => upcomingEvents(62, signal) });
+  const rates = useQuery({ queryKey: ["exchange-rates", "CNY"], queryFn: ({ signal }) => latestCnyRates(signal), staleTime: 6 * 60 * 60 * 1000, retry: 1 });
   const firstError = subscriptions.error ?? events.error;
   if (subscriptions.isPending || events.isPending) return <LoadingState label="正在整理工作区…" />;
   if (firstError) return <ErrorState error={firstError} />;
@@ -24,6 +25,8 @@ export function DashboardPage() {
     }
   }
   const expected = [...nextMonthExpected.entries()].map(([currency, amount]) => [currency, String(amount)] as const);
+  const unsupportedCurrencies = expected.filter(([currency]) => !rates.data?.rates[currency]).map(([currency]) => currency);
+  const expectedCny = rates.data && unsupportedCurrencies.length === 0 ? expected.reduce((total, [currency, amount]) => total + Number(amount) * Number(rates.data.rates[currency]), 0) : null;
   const eventsIn30Days = (events.data ?? []).filter((event) => new Date(`${event.event_date}T00:00:00`).getTime() <= now.getTime() + 30 * 86_400_000);
   const names = new Map(subscriptions.data?.items.map((item) => [item.id, item.name]));
   return (
@@ -32,6 +35,7 @@ export function DashboardPage() {
       <div className="metric-grid">
         <article className="metric-card"><span>活跃订阅</span><strong>{subscriptions.data?.items.filter((item) => item.status === "active").length ?? 0}</strong><small>共 {subscriptions.data?.total ?? 0} 项</small></article>
         <article className="metric-card"><span>下月预计续费</span><div className="money-stack">{expected.length ? expected.map(([currency, amount]) => <strong key={currency}><Money amount={amount} currency={currency} /></strong>) : <strong>—</strong>}</div><small>{new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long" }).format(nextMonthStart)}账单事件</small></article>
+        <article className="metric-card"><span>下月人民币估算</span><div className="money-stack"><strong>{expectedCny === null ? "—" : <Money amount={String(expectedCny)} currency="CNY" />}</strong></div><small>{rates.data ? unsupportedCurrencies.length ? `${unsupportedCurrencies.join("、")} 无参考汇率，未合计` : `ECB ${rates.data.date} 参考汇率` : rates.isPending ? "正在获取最新参考汇率…" : "汇率暂不可用，未生成估算"}</small></article>
         <article className="metric-card"><span>即将发生</span><strong>{eventsIn30Days.length}</strong><small>未来 30 天关键事件</small></article>
       </div>
       <div className="dashboard-grid">

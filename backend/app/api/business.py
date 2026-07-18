@@ -44,6 +44,7 @@ from app.services.business import (
     model_dict,
     replace_plan,
 )
+from app.services.exchange_rates import ExchangeRateResult, latest_cny_rates
 
 router = APIRouter(prefix="/api/v1", tags=["business"])
 
@@ -694,6 +695,17 @@ async def analytics_summary(
             "未分类",
         ),
     }
+
+
+@router.get("/exchange-rates/latest")
+async def exchange_rates_latest(actor: Actor = Depends(get_actor)) -> ExchangeRateResult:
+    actor.require("analytics:read")
+    try:
+        return await latest_cny_rates()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503, detail="exchange rates are temporarily unavailable"
+        ) from exc
 
 
 @router.get("/audit-logs")

@@ -133,6 +133,7 @@ It exercises the authenticated workflow on desktop and at 360 px, including offl
 - Logs are structured JSON and include `request_id`, `actor`, and `entity_id` fields.
 - User-supplied `X-Request-ID` is accepted only when non-empty and at most 100 characters.
 - Configure `NTFY_BASE_URL` and replace `NTFY_TOPIC=replace-me` before enabling real notification delivery. With the placeholder topic, scheduler scanning is explicitly skipped and logged.
+- The Dashboard retrieves the European Central Bank's latest working-day reference rates through the backend and caches them for six hours. Outbound HTTPS to `www.ecb.europa.eu` is required for the optional CNY estimate; original-currency totals remain available when it is unreachable.
 
 ## Authoritative documents
 

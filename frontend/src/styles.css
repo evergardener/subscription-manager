@@ -51,7 +51,7 @@ input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgb(23 107 97 / 
 .offline-banner { display:flex; align-items:center; gap:.65rem; margin-bottom:1rem; padding:.75rem .9rem; border:1px solid #e7c46e; border-radius:.75rem; color:#6b4f10; background:#fff6d9; }
 .offline-banner span { font-size:.84rem; }
 body[data-offline="true"] button:disabled { cursor:not-allowed; filter:grayscale(.35); opacity:.5; }
-.metric-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1rem; }
+.metric-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1rem; }
 .metric-card,.panel,.subscription-card { border:1px solid var(--border); border-radius:1rem; background:var(--surface); box-shadow:0 .8rem 2.5rem rgb(38 67 63 / 4%); }
 .metric-card { display:grid; gap:.55rem; min-height:9.5rem; align-content:center; padding:1.25rem; }
 .metric-card>span,.metric-card small,.card-money span { color:var(--muted); }
@@ -142,6 +142,11 @@ select { width:100%; padding:.8rem .9rem; border:1px solid #cbd8d4; border-radiu
 .timeline article small { color:var(--muted); }
 .event-icon { display:grid; width:2.4rem; height:2.4rem; place-items:center; border-radius:.7rem; color:var(--primary); background:var(--primary-soft); font-weight:900; }
 .currency-grid,.analytics-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; margin-bottom:1rem; }
+.currency-add { display:grid; grid-template-columns:1fr auto; gap:.75rem; align-items:end; margin-top:1rem; }
+.currency-selection { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.75rem; }
+.currency-selection span { display:flex; align-items:center; gap:.45rem; padding:.45rem .65rem; border:1px solid var(--border); border-radius:999px; background:var(--primary-soft); font-size:.78rem; }
+.currency-selection button { border:0; background:transparent; color:var(--muted); cursor:pointer; }
+.form-error { color:var(--danger); font-size:.82rem; margin:.5rem 0 0; }
 .comparison { display:grid; gap:1.1rem; }
 .comparison>div { display:grid; grid-template-columns:4rem 1fr; gap:.3rem 1rem; align-items:center; }
 .comparison span { color:var(--muted); }

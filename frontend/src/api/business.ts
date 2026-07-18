@@ -32,6 +32,7 @@ export type SubscriptionPage = { items: Subscription[]; page: number; page_size:
 export type EventItem = { id: string; subscription_id: string; event_type: string; event_date: string; amount: string | null; currency: string | null; status: string };
 export type AnalyticsBreakdown = { label: string; currency: string; expected: string; actual: string };
 export type Analytics = { expected: Record<string, string>; actual: Record<string, string>; by_vendor: AnalyticsBreakdown[]; by_category: AnalyticsBreakdown[] };
+export type ExchangeRates = { base: "CNY"; date: string; source: string; source_url: string; rates: Record<string, string> };
 export type Payment = { id: string; amount: string; currency: string; paid_at: string; tax_amount: string; source: string; notes: string | null };
 export type ReminderRule = { id: string; event_type: string; offset_days: number; channel: string; enabled: boolean };
 export type AuditLog = { id: string; action: string; entity_type: string; entity_id: string; actor_type: string; actor_id: string; occurred_at: string };
@@ -119,4 +120,8 @@ export function upcomingEvents(days = 30, signal?: AbortSignal) {
 
 export function analyticsSummary(signal?: AbortSignal) {
   return apiRequest<Analytics>("/api/v1/analytics/summary", { signal });
+}
+
+export function latestCnyRates(signal?: AbortSignal) {
+  return apiRequest<ExchangeRates>("/api/v1/exchange-rates/latest", { signal });
 }
