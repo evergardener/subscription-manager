@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：**P1、P2、P3 已实现并在新开发主机通过本地 PostgreSQL、Docker Compose 和自动化测试；等待 GitHub Actions 对最终提交给出权威结果**
+状态：**P1、P2、P3 已实现并在新开发主机通过本地 PostgreSQL、Docker Compose、自动化测试和 GitHub Actions；P3 正式关闭**
 
 ## 交付范围
 
@@ -37,6 +37,11 @@
 - Backend/Scheduler 日志未发现 `Traceback`、`ERROR` 或 `CRITICAL`。
 - 验证结束后已清空临时管理员、订阅、付款、投递和审计数据，保留空白 P3 schema 与运行中的本地实例。
 
-## 尚待补齐
+## GitHub Actions
 
-最终提交推送后，确认 GitHub Actions `backend`、`frontend`、`compose` 三个 job 全绿，并将运行链接与 commit SHA 补充到本文件。完成后停止开发，下一阶段从 P4 开始。
+- 实现提交：[`7a464ac`](https://github.com/evergardener/subscription-manager/commit/7a464ac049022a6e34f18921850241605eb5315a)
+- CI 运行：[29643452568](https://github.com/evergardener/subscription-manager/actions/runs/29643452568)
+- `backend`、`frontend`、`compose` 三个 job 全部通过。
+- Actions 仅报告 GitHub 托管 action 的 Node.js 20 弃用提示，不影响本次验收；后续依赖升级时处理。
+
+至此按计划停止开发，下一阶段从 P4 开始。
