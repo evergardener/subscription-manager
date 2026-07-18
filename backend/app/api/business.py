@@ -317,6 +317,9 @@ async def patch_subscription(
         )
         await replace_plan(session, plan, new_plan, now)
         plan = new_plan
+        await session.flush()
+        await session.refresh(item)
+        await session.refresh(plan)
     if payload.service_dates:
         dates = await session.get(ServiceDates, item.id)
         if dates is None:

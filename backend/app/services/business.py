@@ -121,6 +121,8 @@ def add_audit(
 async def generate_billing_events(
     session: AsyncSession, plan: BillingPlan, through: date | None = None
 ) -> int:
+    if not plan.auto_renew:
+        return 0
     end = through or date.today() + timedelta(days=366)
     subscription = await session.get(Subscription, plan.subscription_id)
     if subscription and subscription.status == SubscriptionStatus.PENDING_CANCEL:

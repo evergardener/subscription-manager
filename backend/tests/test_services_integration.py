@@ -54,6 +54,9 @@ async def test_business_services_generate_replace_audit_and_idempotency(
     await db_session.flush()
     assert await generate_billing_events(db_session, old, date(2026, 10, 31)) == 4
     assert await generate_billing_events(db_session, old, date(2026, 10, 31)) == 0
+    old.auto_renew = False
+    assert await generate_billing_events(db_session, old, date(2026, 12, 31)) == 0
+    old.auto_renew = True
     assert advance_plan(old, date(2026, 7, 31)) == date(2026, 8, 31)
 
     now = datetime.now(UTC)

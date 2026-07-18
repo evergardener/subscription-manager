@@ -129,6 +129,41 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     assert old_expiry is not None
     assert old_expiry.status == EventStatus.SUPERSEDED
 
+    current_plan = patched.json()["billing_plan"]
+    non_renewing = await client.patch(
+        f"/api/v1/subscriptions/{created.json()['id']}",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "expected_version": patched.json()["version"],
+            "billing_plan": {
+                key: value
+                for key, value in current_plan.items()
+                if key
+                in {
+                    "amount",
+                    "currency",
+                    "interval_unit",
+                    "interval_count",
+                    "anchor_date",
+                    "next_billing_date",
+                    "billing_mode",
+                }
+            }
+            | {"auto_renew": False},
+        },
+    )
+    assert non_renewing.status_code == 200
+    assert non_renewing.json()["billing_plan"]["auto_renew"] is False
+    await db_session.rollback()
+    assert not list(
+        await db_session.scalars(
+            select(BillingEvent).where(
+                BillingEvent.billing_plan_id == non_renewing.json()["billing_plan"]["id"],
+                BillingEvent.status == EventStatus.PLANNED,
+            )
+        )
+    )
+
     rules_url = f"/api/v1/subscriptions/{created.json()['id']}/reminder-rules"
     rules = await client.put(
         rules_url,

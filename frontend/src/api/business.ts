@@ -11,6 +11,7 @@ export type BillingPlan = {
   auto_renew: boolean;
   billing_mode: string;
 };
+export type ServiceDates = { trial_end_date: string | null; service_expiry_date: string | null; cancellation_deadline: string | null; contract_end_date: string | null };
 
 export type Subscription = {
   id: string;
@@ -20,12 +21,7 @@ export type Subscription = {
   version: number;
   archived_at: string | null;
   billing_plan?: BillingPlan;
-  service_dates?: {
-    trial_end_date: string | null;
-    service_expiry_date: string | null;
-    cancellation_deadline: string | null;
-    contract_end_date: string | null;
-  };
+  service_dates?: ServiceDates;
 };
 
 export type SubscriptionPage = { items: Subscription[]; page: number; page_size: number; total: number };
@@ -80,6 +76,13 @@ export function updateSubscription(item: Subscription, changes: { amount: string
       expected_version: item.version,
       billing_plan: { ...item.billing_plan, amount: changes.amount, next_billing_date: changes.next_billing_date },
     }),
+  });
+}
+
+export function updateServiceDates(item: Subscription, service_dates: ServiceDates) {
+  return apiRequest<Subscription>(`/api/v1/subscriptions/${item.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ expected_version: item.version, service_dates }),
   });
 }
 
