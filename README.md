@@ -110,14 +110,13 @@ For the P1–P3 gate, point `TEST_DATABASE_URL` at a disposable PostgreSQL datab
 
 This additionally enforces 80% domain/service coverage, checks Alembic metadata drift, and performs a destructive downgrade/upgrade cycle only against the explicitly named disposable test database.
 
-For P4, start the full Compose stack and additionally run the browser acceptance suite:
+For P4 and later UI changes, run the isolated browser acceptance gate:
 
 ```powershell
-cd frontend
-npm run test:e2e
+./scripts/verify-e2e.ps1
 ```
 
-It exercises the authenticated workflow on desktop and at 360 px, including offline read-only mode. See [P4 verification record](docs/P4_VERIFICATION.md) for the full evidence and prerequisites.
+It starts a separate Compose project on ports 18000/18080 with a fresh disposable database, exercises the authenticated workflow on desktop and at 360 px, then removes only that project's containers and volume. This avoids false results from an existing administrator or retained application data. See [P4 verification record](docs/P4_VERIFICATION.md) for the full evidence and prerequisites.
 
 ## Development workflow
 

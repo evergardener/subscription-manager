@@ -12,10 +12,15 @@ async function login(page: Page) {
 }
 
 test.beforeAll(async ({ request }) => {
-  const response = await request.post("http://localhost:8000/api/v1/auth/bootstrap", {
+  const response = await request.post("/api/v1/auth/bootstrap", {
     data: { username, password },
   });
-  expect([201, 409]).toContain(response.status());
+  if (response.status() === 201) return;
+  expect(response.status()).toBe(409);
+  const loginResponse = await request.post("/api/v1/auth/login", {
+    data: { username, password },
+  });
+  expect(loginResponse.ok(), "A pre-existing administrator must match the isolated E2E credentials").toBeTruthy();
 });
 
 test("complete authenticated P4 workflow", async ({ page, context }, testInfo) => {
@@ -36,16 +41,35 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   await page.getByRole("heading", { name: subscriptionName }).click();
   await expect(page.getByRole("heading", { name: "计费计划" })).toBeVisible();
   await expect(page.getByText("已关闭", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "← 所有订阅" }).click();
+  const nonRenewingCard = page.locator(".subscription-card").filter({ hasText: subscriptionName });
+  await expect(nonRenewingCard.getByText("已关闭自动续费", { exact: true })).toBeVisible();
+  await nonRenewingCard.click();
+
+  const datesPanel = page.locator("section.panel").filter({ has: page.getByRole("heading", { name: "关键日期" }) });
+  await datesPanel.getByRole("button", { name: "编辑", exact: true }).click();
+  const datesDialog = page.getByRole("dialog", { name: "编辑关键日期" });
+  await datesDialog.getByLabel("服务到期").fill(nextMonth.toISOString().slice(0, 10));
+  await datesDialog.getByRole("button", { name: "保存日期" }).click();
+  await expect(datesPanel).toContainText(`服务到期${nextMonth.toISOString().slice(0, 10)}`);
+
   await page.getByRole("button", { name: "编辑计划" }).click();
   await page.getByLabel("到期后继续自动续费").check();
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect(page.getByText("已开启", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "＋ 记录付款" }).click();
-  await page.getByRole("dialog", { name: "记录实际付款" }).getByRole("button", { name: "记录付款" }).click();
+  const paymentDialog = page.getByRole("dialog", { name: "记录实际付款" });
+  await expect(paymentDialog.getByLabel("推进到下一账期")).toBeChecked();
+  await paymentDialog.getByRole("button", { name: "记录付款" }).click();
   await expect(page.getByText("manual", { exact: true })).toBeVisible();
+  const updatedDetail = await context.request.get(`/api/v1/subscriptions/${new URL(page.url()).pathname.split("/").pop()}`);
+  expect(updatedDetail.ok()).toBeTruthy();
+  const detailBody = (await updatedDetail.json()) as { billing_plan: { next_billing_date: string | null } };
+  expect(detailBody.billing_plan.next_billing_date).not.toBe(nextMonth.toISOString().slice(0, 10));
 
-  await page.getByRole("button", { name: "编辑", exact: true }).click();
+  const remindersPanel = page.locator("section.panel").filter({ has: page.getByRole("heading", { name: "提醒", exact: true }) });
+  await remindersPanel.getByRole("button", { name: "编辑", exact: true }).click();
   const rules = page.getByRole("dialog", { name: "续费提醒" });
   await rules.getByLabel("第一条（提前天数）").fill("5");
   await rules.getByLabel("第二条（提前天数）").fill("1");

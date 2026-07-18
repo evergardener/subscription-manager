@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { getReminderRules, getSubscription, listAuditLogs, listPayments, recordPayment, saveReminderRules, setSubscriptionArchived, updateServiceDates, updateSubscription, type ServiceDates, type Subscription } from "../api/business";
+import { getReminderRules, getSubscription, listAuditLogs, listPayments, recordPayment, saveReminderRules, setSubscriptionArchived, upcomingEvents, updateServiceDates, updateSubscription, type EventItem, type ServiceDates, type Subscription } from "../api/business";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
 import { Money } from "../components/Money";
 import { useOffline } from "../offline/OfflineProvider";
@@ -17,6 +17,7 @@ export function SubscriptionDetailPage() {
   const payments = useQuery({ queryKey: ["payments", subscriptionId], queryFn: ({ signal }) => listPayments(subscriptionId, signal), enabled: Boolean(subscriptionId) });
   const rules = useQuery({ queryKey: ["rules", subscriptionId], queryFn: ({ signal }) => getReminderRules(subscriptionId, signal), enabled: Boolean(subscriptionId) });
   const audit = useQuery({ queryKey: ["audit"], queryFn: ({ signal }) => listAuditLogs(signal) });
+  const events = useQuery({ queryKey: ["events", 366], queryFn: ({ signal }) => upcomingEvents(366, signal) });
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["subscription", subscriptionId] }),
@@ -28,7 +29,7 @@ export function SubscriptionDetailPage() {
     setDialog(null);
   };
   const edit = useMutation({ mutationFn: (changes: { amount: string; next_billing_date: string; auto_renew: boolean }) => updateSubscription(subscription.data as Subscription, changes), onSuccess: refresh });
-  const payment = useMutation({ mutationFn: (payload: { amount: string; currency: string; paid_at: string; notes?: string }) => recordPayment(subscriptionId, payload), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["payments", subscriptionId] }); await refresh(); } });
+  const payment = useMutation({ mutationFn: (payload: { amount: string; currency: string; paid_at: string; notes?: string; billing_event_id?: string; advance_schedule: boolean }) => recordPayment(subscriptionId, payload), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["payments", subscriptionId] }); await refresh(); } });
   const reminder = useMutation({ mutationFn: (offsets: number[]) => saveReminderRules(subscriptionId, offsets), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["rules", subscriptionId] }); await refresh(); } });
   const dates = useMutation({ mutationFn: (values: ServiceDates) => updateServiceDates(subscription.data as Subscription, values), onSuccess: refresh });
   const archive = useMutation({ mutationFn: (archived: boolean) => setSubscriptionArchived(subscriptionId, archived), onSuccess: async (_, archived) => { await refresh(); if (archived) void navigate("/subscriptions"); } });
@@ -36,6 +37,7 @@ export function SubscriptionDetailPage() {
   const firstError = subscription.error ?? payments.error ?? rules.error ?? audit.error;
   if (firstError || !subscription.data) return <ErrorState error={firstError} />;
   const item = subscription.data;
+  const currentBillingEvent = events.data?.find((event) => event.subscription_id === item.id && event.event_type === "billing" && event.status === "planned" && event.event_date === item.billing_plan?.next_billing_date);
   const logs = audit.data?.items.filter((entry) => entry.entity_id === item.id || (entry.entity_type === "payment" && payments.data?.some((payment) => payment.id === entry.entity_id))).slice(0, 8) ?? [];
   return <section>
     <div className="detail-breadcrumb"><Link to="/subscriptions">← 所有订阅</Link></div>
@@ -49,7 +51,7 @@ export function SubscriptionDetailPage() {
       <section className="panel"><div className="panel-heading"><div><p className="eyebrow">Audit</p><h2>最近活动</h2></div></div>{logs.length ? <div className="audit-list">{logs.map((entry) => <article key={entry.id}><span>{entry.action}</span><small>{entry.actor_type} · {new Intl.DateTimeFormat("zh-CN", { dateStyle: "short", timeStyle: "short" }).format(new Date(entry.occurred_at))}</small></article>)}</div> : <p className="muted">暂无活动记录。</p>}</section>
     </aside></div>
     {dialog === "edit" && item.billing_plan && <EditDialog item={item} pending={edit.isPending} error={edit.error} onClose={() => setDialog(null)} onSubmit={(values) => edit.mutate(values)} />}
-    {dialog === "payment" && item.billing_plan && <PaymentDialog currency={item.billing_plan.currency} amount={item.billing_plan.amount} pending={payment.isPending} error={payment.error} onClose={() => setDialog(null)} onSubmit={(values) => payment.mutate(values)} />}
+    {dialog === "payment" && item.billing_plan && <PaymentDialog currency={item.billing_plan.currency} amount={item.billing_plan.amount} event={currentBillingEvent} autoRenew={item.billing_plan.auto_renew} pending={payment.isPending} error={payment.error} onClose={() => setDialog(null)} onSubmit={(values) => payment.mutate(values)} />}
     {dialog === "rules" && <RulesDialog initial={rules.data?.filter((rule) => rule.enabled).map((rule) => rule.offset_days) ?? []} pending={reminder.isPending} error={reminder.error} onClose={() => setDialog(null)} onSubmit={(values) => reminder.mutate(values)} />}
     {dialog === "dates" && <DatesDialog initial={item.service_dates} pending={dates.isPending} error={dates.error} onClose={() => setDialog(null)} onSubmit={(values) => dates.mutate(values)} />}
   </section>;
@@ -66,9 +68,9 @@ function EditDialog({ item, pending, error, onClose, onSubmit }: { item: Subscri
   return <DialogFrame title="编辑计费计划" pending={pending} error={error} onClose={onClose} submitLabel="保存更改" onSubmit={(data) => onSubmit({ amount: field(data, "amount"), next_billing_date: field(data, "next_billing_date"), auto_renew: data.get("auto_renew") === "on" })}><div className="form-grid"><label>金额<input name="amount" type="number" min="0" step="0.01" required defaultValue={item.billing_plan?.amount} /></label><label>下次续费<input name="next_billing_date" type="date" required defaultValue={item.billing_plan?.next_billing_date ?? ""} /></label><label className="cache-toggle"><input name="auto_renew" type="checkbox" defaultChecked={item.billing_plan?.auto_renew} />到期后继续自动续费</label></div></DialogFrame>;
 }
 
-function PaymentDialog({ currency, amount, pending, error, onClose, onSubmit }: { currency: string; amount: string; pending: boolean; error: unknown; onClose: () => void; onSubmit: (value: { amount: string; currency: string; paid_at: string; notes?: string }) => void }) {
+function PaymentDialog({ currency, amount, event, autoRenew, pending, error, onClose, onSubmit }: { currency: string; amount: string; event?: EventItem; autoRenew: boolean; pending: boolean; error: unknown; onClose: () => void; onSubmit: (value: { amount: string; currency: string; paid_at: string; notes?: string; billing_event_id?: string; advance_schedule: boolean }) => void }) {
   const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return <DialogFrame title="记录实际付款" pending={pending} error={error} onClose={onClose} submitLabel="记录付款" onSubmit={(data) => onSubmit({ amount: field(data, "amount"), currency, paid_at: new Date(field(data, "paid_at")).toISOString(), notes: field(data, "notes") })}><div className="form-grid"><label>金额<input name="amount" type="number" min="0.01" step="0.01" required defaultValue={amount} /></label><label>币种<input value={currency} disabled /></label><label>付款时间<input name="paid_at" type="datetime-local" required defaultValue={now.toISOString().slice(0, 16)} /></label><label>备注<input name="notes" maxLength={500} /></label></div></DialogFrame>;
+  return <DialogFrame title="记录实际付款" pending={pending} error={error} onClose={onClose} submitLabel="记录付款" onSubmit={(data) => { const advance_schedule = data.get("advance_schedule") === "on"; onSubmit({ amount: field(data, "amount"), currency, paid_at: new Date(field(data, "paid_at")).toISOString(), notes: field(data, "notes"), billing_event_id: advance_schedule ? event?.id : undefined, advance_schedule }); }}><div className="form-grid"><label>金额<input name="amount" type="number" min="0.01" step="0.01" required defaultValue={amount} /></label><label>币种<input value={currency} disabled /></label><label>付款时间<input name="paid_at" type="datetime-local" required defaultValue={now.toISOString().slice(0, 16)} /></label><label>备注<input name="notes" maxLength={500} /></label><label className="cache-toggle"><input name="advance_schedule" type="checkbox" defaultChecked={autoRenew && Boolean(event)} disabled={!event} />推进到下一账期</label></div>{event ? <p className="muted">关联当前账单事件：{event.event_date}</p> : <p className="muted">没有匹配的当前账单事件，本次付款将作为历史补录且不推进账期。</p>}</DialogFrame>;
 }
 
 function RulesDialog({ initial, pending, error, onClose, onSubmit }: { initial: number[]; pending: boolean; error: unknown; onClose: () => void; onSubmit: (value: number[]) => void }) {

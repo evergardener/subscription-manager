@@ -74,7 +74,7 @@ export function updateSubscription(item: Subscription, changes: { amount: string
     method: "PATCH",
     body: JSON.stringify({
       expected_version: item.version,
-      billing_plan: { ...item.billing_plan, amount: changes.amount, next_billing_date: changes.next_billing_date },
+      billing_plan: { ...item.billing_plan, amount: changes.amount, next_billing_date: changes.next_billing_date, auto_renew: changes.auto_renew },
     }),
   });
 }
@@ -94,11 +94,11 @@ export function listPayments(id: string, signal?: AbortSignal) {
   return apiRequest<Payment[]>(`/api/v1/subscriptions/${id}/payments`, { signal });
 }
 
-export function recordPayment(id: string, payload: { amount: string; currency: string; paid_at: string; notes?: string }) {
+export function recordPayment(id: string, payload: { amount: string; currency: string; paid_at: string; notes?: string; billing_event_id?: string; advance_schedule: boolean }) {
   return apiRequest<Payment>(`/api/v1/subscriptions/${id}/payments`, {
     method: "POST",
     headers: { "Idempotency-Key": crypto.randomUUID() },
-    body: JSON.stringify({ ...payload, tax_amount: "0", source: "manual", advance_schedule: false }),
+    body: JSON.stringify({ ...payload, tax_amount: "0", source: "manual" }),
   });
 }
 

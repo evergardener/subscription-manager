@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const localChannel = process.env.E2E_BROWSER_CHANNEL ?? (process.env.CI ? undefined : "msedge");
+const browser = localChannel ? { channel: localChannel } : {};
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
@@ -12,7 +15,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Edge"], channel: "msedge" } },
-    { name: "mobile-360", use: { ...devices["Desktop Edge"], channel: "msedge", viewport: { width: 360, height: 740 } } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"], ...browser } },
+    { name: "mobile-360", use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 360, height: 740 } } },
   ],
 });

@@ -1,6 +1,6 @@
 export const commonCurrencies = ["CNY", "USD", "EUR", "GBP", "JPY", "HKD"] as const;
 
-const supportedCurrencies = new Set("AED ARS AUD BDT BGN BHD BRL CAD CHF CLP CNY COP CZK DKK EGP EUR GBP HKD HUF IDR ILS INR ISK JPY KRW KWD MAD MXN MYR NOK NZD PHP PKR PLN QAR RON RSD RUB SAR SEK SGD THB TRY TWD UAH USD VND ZAR".split(" "));
+const supportedCurrencies = new Set(Intl.supportedValuesOf("currency"));
 const regionOverrides: Record<string, string> = { AED: "AE", ARS: "AR", BGN: "BG", EUR: "EU", GBP: "GB", HKD: "HK", USD: "US", XAF: "CM", XCD: "AG", XOF: "SN" };
 const currencyNames = new Intl.DisplayNames(["zh-CN"], { type: "currency" });
 const regionNames = new Intl.DisplayNames(["zh-CN"], { type: "region" });
@@ -10,27 +10,27 @@ const defaultCurrencyKey = "subscription-manager-default-currency";
 
 export function getCurrencies(): string[] {
   try {
-    const saved = JSON.parse(localStorage.getItem(currenciesKey) ?? "null") as unknown;
+    const saved = JSON.parse(window.localStorage.getItem(currenciesKey) ?? "null") as unknown;
     if (Array.isArray(saved)) {
       const currencies = saved.filter((value): value is string =>
-        typeof value === "string" && /^[A-Z]{3}$/.test(value),
+        typeof value === "string" && isSupportedCurrency(value),
       );
       if (currencies.length) return [...new Set(currencies)];
     }
   } catch {
-    // Fall back to the built-in ISO 4217 shortlist when a preference is malformed.
+    // Fall back to the built-in common currencies when a preference is malformed.
   }
   return [...commonCurrencies];
 }
 
 export function getDefaultCurrency(currencies = getCurrencies()): string {
-  const saved = localStorage.getItem(defaultCurrencyKey);
+  const saved = window.localStorage.getItem(defaultCurrencyKey);
   return saved && currencies.includes(saved) ? saved : "CNY";
 }
 
 export function saveCurrencyPreferences(currencies: string[], defaultCurrency: string) {
-  localStorage.setItem(currenciesKey, JSON.stringify(currencies));
-  localStorage.setItem(defaultCurrencyKey, defaultCurrency);
+  window.localStorage.setItem(currenciesKey, JSON.stringify(currencies));
+  window.localStorage.setItem(defaultCurrencyKey, defaultCurrency);
 }
 
 export function isSupportedCurrency(currency: string): boolean {

@@ -302,14 +302,19 @@ async def patch_subscription(
         raise HTTPException(status_code=404, detail="subscription not found")
     if item.version != payload.expected_version:
         raise HTTPException(status_code=409, detail={"current_version": item.version})
-    before = model_dict(item)
+    plan = await current_plan(session, item.id)
+    dates = await session.get(ServiceDates, item.id)
+    before = {
+        "subscription": model_dict(item),
+        "billing_plan": model_dict(plan) if plan else None,
+        "service_dates": model_dict(dates) if dates else None,
+    }
     changes = payload.model_dump(
         exclude_unset=True, exclude={"expected_version", "billing_plan", "service_dates"}
     )
     for key, value in changes.items():
         setattr(item, key, value.strip() if isinstance(value, str) else value)
     item.version += 1
-    plan = await current_plan(session, item.id)
     if payload.billing_plan and plan:
         now = datetime.now(UTC)
         new_plan = BillingPlan(
@@ -321,7 +326,6 @@ async def patch_subscription(
         await session.refresh(item)
         await session.refresh(plan)
     if payload.service_dates:
-        dates = await session.get(ServiceDates, item.id)
         if dates is None:
             dates = ServiceDates(subscription_id=item.id)
             session.add(dates)
@@ -339,7 +343,11 @@ async def patch_subscription(
         item.id,
         request_id_context.get() or "unknown",
         before,
-        model_dict(item),
+        {
+            "subscription": model_dict(item),
+            "billing_plan": model_dict(plan) if plan else None,
+            "service_dates": model_dict(dates) if dates else None,
+        },
     )
     result = subscription_json(item, plan)
     if payload.service_dates:

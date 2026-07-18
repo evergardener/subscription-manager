@@ -34,7 +34,7 @@ Playwright ran the complete authenticated P4 workflow against the rebuilt Compos
 | desktop | Desktop default | Passed |
 | mobile-360 | 360 px wide | Passed; no horizontal overflow |
 
-Both projects exercised login, subscription creation, payment recording, two reminder rules, archive/restore, one-time Token display and revocation, offline write blocking, and logout. The suite is located at `frontend/e2e/p4.spec.ts` and runs with `npm run test:e2e`.
+Both projects exercised login, non-renewing subscription creation, key-date editing, auto-renew changes, payment recording with schedule advancement, two reminder rules, archive/restore, one-time Token display and revocation, offline write blocking, and logout. The suite is located at `frontend/e2e/p4.spec.ts` and runs through `scripts/verify-e2e.ps1` against a fresh isolated Compose project and database. GitHub Actions runs the same gate with bundled Chromium.
 
 ## Regression fixed during verification
 

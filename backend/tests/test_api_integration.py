@@ -154,6 +154,15 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     )
     assert non_renewing.status_code == 200
     assert non_renewing.json()["billing_plan"]["auto_renew"] is False
+    audit_after_plan = await client.get("/api/v1/audit-logs?page_size=100")
+    plan_change = next(
+        entry
+        for entry in audit_after_plan.json()["items"]
+        if entry["action"] == "update"
+        and entry["after_json"].get("billing_plan", {}).get("auto_renew") is False
+    )
+    assert plan_change["before_json"]["billing_plan"]["auto_renew"] is True
+    assert plan_change["after_json"]["service_dates"]["service_expiry_date"] == "2026-09-15"
     await db_session.rollback()
     assert not list(
         await db_session.scalars(
