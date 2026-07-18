@@ -41,7 +41,7 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy app tests
-      - run: uv run pytest
+      - run: uv run pytest --cov=app.domain --cov=app.services --cov-report=term --cov-fail-under=80
       - name: Migration smoke test
         run: |
           uv run alembic upgrade head

@@ -11,7 +11,8 @@
 - P0 代码、依赖锁定、本地质量检查、本地 Docker 完整栈和局域网 Docker 交叉验证已通过；完整证据见 [P0_VERIFICATION.md](./P0_VERIFICATION.md)。
 - PostgreSQL 已固定为 `postgres:16.14-alpine3.22`，解决浮动标签在旧版 seccomp 宿主机上的兼容性和可复现性问题。
 - 新开发主机已从 lockfile 重建并完成本地质量门、Docker Linux Engine 完整栈和迁移往返复验。
-- 提交 `cad4b9a` 的 GitHub Actions `backend`、`frontend`、`compose` 三个 job 已全部通过；P0 正式关闭，下一步进入 P1。
+- 提交 `cad4b9a` 的 GitHub Actions `backend`、`frontend`、`compose` 三个 job 已全部通过，P0 已关闭。
+- P1、P2、P3 已实现并通过本地 PostgreSQL、完整 Compose 垂直切片和自动化测试；最终 GitHub Actions 证据见 [P3_VERIFICATION.md](./P3_VERIFICATION.md)。按计划在 P3 后停止，P4 尚未开始。
 - 每个已验证变更后自动创建 Git 提交；仓库约定见根目录 [AGENTS.md](../AGENTS.md)。
 
 ## 2. 架构理解

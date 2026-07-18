@@ -36,6 +36,13 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hermes}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hermes}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      NTFY_BASE_URL: ${NTFY_BASE_URL:-https://ntfy.sh}
+      NTFY_TOPIC: ${NTFY_TOPIC:-replace-me}
+      REMINDER_SCAN_DAYS: ${REMINDER_SCAN_DAYS:-30}
+      REMINDER_GRACE_DAYS: ${REMINDER_GRACE_DAYS:-3}
+      REMINDER_MAX_ATTEMPTS: ${REMINDER_MAX_ATTEMPTS:-5}
+      REMINDER_LEASE_SECONDS: ${REMINDER_LEASE_SECONDS:-120}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -62,6 +69,12 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SCHEDULER_HEARTBEAT_SECONDS: ${SCHEDULER_HEARTBEAT_SECONDS:-60}
+      NTFY_BASE_URL: ${NTFY_BASE_URL:-https://ntfy.sh}
+      NTFY_TOPIC: ${NTFY_TOPIC:-replace-me}
+      REMINDER_SCAN_DAYS: ${REMINDER_SCAN_DAYS:-30}
+      REMINDER_GRACE_DAYS: ${REMINDER_GRACE_DAYS:-3}
+      REMINDER_MAX_ATTEMPTS: ${REMINDER_MAX_ATTEMPTS:-5}
+      REMINDER_LEASE_SECONDS: ${REMINDER_LEASE_SECONDS:-120}
     command: ["python", "-m", "app.scheduler"]
     depends_on:
       migrate:

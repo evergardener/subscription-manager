@@ -2,18 +2,19 @@
 
 Self-hosted subscription and digital-service lifecycle manager. This repository is being implemented from the approved v1.1 development specification.
 
-## P0 status
+## Current status
 
-P0 establishes the architecture and delivery pipeline only. It intentionally contains no subscription business tables or P1 domain behavior.
+P0 through P3 are implemented. The backend now provides the domain schema, authentication, core subscription APIs, persistent billing events, payments, audit logs, reminder rules, and the independent ntfy-capable scheduler. P4 UI work has not started, so the frontend remains the architecture health screen.
 
 Included:
 
 - FastAPI backend with JSON logs, request IDs, OpenAPI, and live/ready health checks.
 - Independent APScheduler process using the same backend image.
 - React/TypeScript/Vite frontend with a typed health probe.
-- Empty Alembic baseline; no ORM auto-create path.
+- Alembic-managed P1 schema; no ORM auto-create path.
 - Docker Compose services for PostgreSQL, migration, backend, scheduler, and frontend.
-- Backend and frontend lint, type-check, test, build, migration, and Compose CI jobs.
+- Session/CSRF for the Web UI and scoped API Tokens for Hermes, scheduler, and automation clients.
+- Backend and frontend lint, type-check, test, coverage, build, migration, and Compose CI jobs.
 
 ## Repository layout
 
@@ -54,6 +55,16 @@ Endpoints:
 
 Stop the stack with `docker compose down`. Add `--volumes` only when intentionally deleting the local PostgreSQL data volume.
 
+On a new empty database, create the single local administrator once:
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:8000/api/v1/auth/bootstrap `
+  -ContentType application/json `
+  -Body '{"username":"admin","password":"replace-with-at-least-12-characters"}'
+```
+
+The bootstrap endpoint returns HTTP 409 after an administrator exists. Login through `POST /api/v1/auth/login`; state-changing Session requests must send the returned CSRF token as `X-CSRF-Token`.
+
 ## Local backend
 
 ```powershell
@@ -61,7 +72,7 @@ cd backend
 uv sync --frozen
 $env:DATABASE_URL = 'postgresql+psycopg://hermes:password@localhost:5432/hermes'
 uv run alembic upgrade head
-uv run uvicorn app.main:app --reload --log-config logging.json
+uv run python -m app.server
 ```
 
 Run the scheduler separately:
@@ -91,6 +102,14 @@ The complete local P0 gate is:
 
 It runs Backend Ruff/format/mypy/pytest/Alembic offline generation, Frontend lint/typecheck/test/build, and `docker compose config`. `-SkipCompose` is only a partial check for machines without Docker and does not prove the full P0 gate.
 
+For the P1–P3 gate, point `TEST_DATABASE_URL` at a disposable PostgreSQL database whose name ends in `test` or `validation`, then run:
+
+```powershell
+./scripts/verify-p3.ps1
+```
+
+This additionally enforces 80% domain/service coverage, checks Alembic metadata drift, and performs a destructive downgrade/upgrade cycle only against the explicitly named disposable test database.
+
 ## Development workflow
 
 - Use the Docker Linux Engine installed on the active development host for integration and runtime validation.
@@ -104,7 +123,7 @@ It runs Backend Ruff/format/mypy/pytest/Alembic offline generation, Frontend lin
 - Configuration comes from environment variables; `.env.example` contains placeholders only.
 - Logs are structured JSON and include `request_id`, `actor`, and `entity_id` fields.
 - User-supplied `X-Request-ID` is accepted only when non-empty and at most 100 characters.
-- P1 will implement Session, CSRF, scoped API Token, domain tables, audit transactions, and lifecycle rules. They are deliberately absent from P0.
+- Configure `NTFY_BASE_URL` and replace `NTFY_TOPIC=replace-me` before enabling real notification delivery. With the placeholder topic, scheduler scanning is explicitly skipped and logged.
 
 ## Authoritative documents
 
