@@ -69,6 +69,10 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     )
     assert duplicate.status_code == 201
     assert duplicate.json()["id"] == created.json()["id"]
+    subscriptions = await client.get("/api/v1/subscriptions")
+    assert subscriptions.status_code == 200
+    assert subscriptions.json()["items"][0]["billing_plan"]["currency"] == "USD"
+    assert subscriptions.json()["items"][0]["billing_plan"]["amount"] == "10.000000"
 
     transition = await client.post(
         f"/api/v1/subscriptions/{created.json()['id']}/status-transitions",

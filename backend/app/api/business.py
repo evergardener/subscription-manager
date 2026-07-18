@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.security import Actor, get_actor
@@ -176,7 +176,13 @@ async def list_subscriptions(
     query: str | None = None,
 ) -> dict[str, Any]:
     actor.require("subscriptions:read")
-    statement = select(Subscription)
+    statement = select(Subscription, BillingPlan).outerjoin(
+        BillingPlan,
+        and_(
+            BillingPlan.subscription_id == Subscription.id,
+            BillingPlan.valid_to.is_(None),
+        ),
+    )
     count_statement = select(func.count()).select_from(Subscription)
     if not include_archived:
         statement = statement.where(Subscription.archived_at.is_(None))
@@ -187,12 +193,12 @@ async def list_subscriptions(
         count_statement = count_statement.where(Subscription.name.ilike(pattern))
     total = await session.scalar(count_statement) or 0
     items = (
-        await session.scalars(
+        await session.execute(
             statement.order_by(Subscription.name).offset((page - 1) * page_size).limit(page_size)
         )
     ).all()
     return {
-        "items": [subscription_json(item) for item in items],
+        "items": [subscription_json(item, plan) for item, plan in items],
         "page": page,
         "page_size": page_size,
         "total": total,
