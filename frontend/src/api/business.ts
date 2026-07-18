@@ -71,7 +71,7 @@ export function getSubscription(id: string, signal?: AbortSignal) {
   return apiRequest<Subscription>(`/api/v1/subscriptions/${id}`, { signal });
 }
 
-export function updateSubscription(item: Subscription, changes: { amount: string; next_billing_date: string }) {
+export function updateSubscription(item: Subscription, changes: { amount: string; next_billing_date: string; auto_renew: boolean }) {
   if (!item.billing_plan) throw new Error("订阅没有当前计费计划");
   return apiRequest<Subscription>(`/api/v1/subscriptions/${item.id}`, {
     method: "PATCH",

@@ -17,7 +17,7 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">H</span><span>Hermes</span></div>
+        <div className="brand"><span className="brand-mark">S</span><span>Subscription Manager</span></div>
         <nav aria-label="主导航">
           {navigation.map(([to, label, icon]) => (
             <NavLink key={to} to={to} end={to === "/"}>

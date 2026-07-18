@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["hermes-icon.svg"],
       manifest: {
-        name: "Hermes Subscription Manager",
-        short_name: "Hermes",
+        name: "Subscription Manager",
+        short_name: "Subscriptions",
         description: "Self-hosted subscription lifecycle manager",
         theme_color: "#176b61",
         background_color: "#f3f6f4",

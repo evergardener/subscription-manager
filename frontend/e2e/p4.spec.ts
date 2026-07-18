@@ -26,11 +26,20 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   await page.getByLabel("名称").fill(subscriptionName);
   await page.getByLabel("供应商").fill("Hermes Labs");
   await page.getByLabel("金额").fill("29.99");
-  await page.getByLabel("下次续费").fill(new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10));
+  const nextMonth = new Date();
+  nextMonth.setMonth(nextMonth.getMonth() + 1, 10);
+  await expect(page.getByLabel("币种")).toHaveValue("CNY");
+  await page.getByLabel("到期后继续自动续费").uncheck();
+  await page.getByLabel("下次续费").fill(nextMonth.toISOString().slice(0, 10));
   await page.getByRole("button", { name: "创建订阅" }).click();
   await expect(page.getByRole("heading", { name: subscriptionName })).toBeVisible();
   await page.getByRole("heading", { name: subscriptionName }).click();
   await expect(page.getByRole("heading", { name: "计费计划" })).toBeVisible();
+  await expect(page.getByText("已关闭", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "编辑计划" }).click();
+  await page.getByLabel("到期后继续自动续费").check();
+  await page.getByRole("button", { name: "保存更改" }).click();
+  await expect(page.getByText("已开启", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "＋ 记录付款" }).click();
   await page.getByRole("dialog", { name: "记录实际付款" }).getByRole("button", { name: "记录付款" }).click();

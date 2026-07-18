@@ -28,7 +28,7 @@ export function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-panel" aria-labelledby="login-title">
-        <div className="brand brand-large"><span className="brand-mark">H</span><span>Hermes</span></div>
+        <div className="brand brand-large"><span className="brand-mark">S</span><span>Subscription Manager</span></div>
         <p className="eyebrow">Subscription Manager</p>
         <h1 id="login-title">欢迎回来</h1>
         <p className="muted">登录以管理订阅、付款与续费提醒。</p>

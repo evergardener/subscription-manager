@@ -27,7 +27,7 @@ export function SubscriptionDetailPage() {
     ]);
     setDialog(null);
   };
-  const edit = useMutation({ mutationFn: (changes: { amount: string; next_billing_date: string }) => updateSubscription(subscription.data as Subscription, changes), onSuccess: refresh });
+  const edit = useMutation({ mutationFn: (changes: { amount: string; next_billing_date: string; auto_renew: boolean }) => updateSubscription(subscription.data as Subscription, changes), onSuccess: refresh });
   const payment = useMutation({ mutationFn: (payload: { amount: string; currency: string; paid_at: string; notes?: string }) => recordPayment(subscriptionId, payload), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["payments", subscriptionId] }); await refresh(); } });
   const reminder = useMutation({ mutationFn: (offsets: number[]) => saveReminderRules(subscriptionId, offsets), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["rules", subscriptionId] }); await refresh(); } });
   const archive = useMutation({ mutationFn: (archived: boolean) => setSubscriptionArchived(subscriptionId, archived), onSuccess: async (_, archived) => { await refresh(); if (archived) void navigate("/subscriptions"); } });
@@ -60,8 +60,8 @@ function DialogFrame({ title, pending, error, onClose, onSubmit, children, submi
   return <div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-label={title}><div className="panel-heading"><h2>{title}</h2><button className="icon-button" onClick={onClose} aria-label="关闭">×</button></div><form onSubmit={submit}>{children}{error ? <ErrorState error={error} /> : null}<div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>取消</button><button className="primary-button" disabled={pending} type="submit">{pending ? "正在保存…" : submitLabel}</button></div></form></section></div>;
 }
 
-function EditDialog({ item, pending, error, onClose, onSubmit }: { item: Subscription; pending: boolean; error: unknown; onClose: () => void; onSubmit: (value: { amount: string; next_billing_date: string }) => void }) {
-  return <DialogFrame title="编辑计费计划" pending={pending} error={error} onClose={onClose} submitLabel="保存更改" onSubmit={(data) => onSubmit({ amount: field(data, "amount"), next_billing_date: field(data, "next_billing_date") })}><div className="form-grid"><label>金额<input name="amount" type="number" min="0" step="0.01" required defaultValue={item.billing_plan?.amount} /></label><label>下次续费<input name="next_billing_date" type="date" required defaultValue={item.billing_plan?.next_billing_date ?? ""} /></label></div></DialogFrame>;
+function EditDialog({ item, pending, error, onClose, onSubmit }: { item: Subscription; pending: boolean; error: unknown; onClose: () => void; onSubmit: (value: { amount: string; next_billing_date: string; auto_renew: boolean }) => void }) {
+  return <DialogFrame title="编辑计费计划" pending={pending} error={error} onClose={onClose} submitLabel="保存更改" onSubmit={(data) => onSubmit({ amount: field(data, "amount"), next_billing_date: field(data, "next_billing_date"), auto_renew: data.get("auto_renew") === "on" })}><div className="form-grid"><label>金额<input name="amount" type="number" min="0" step="0.01" required defaultValue={item.billing_plan?.amount} /></label><label>下次续费<input name="next_billing_date" type="date" required defaultValue={item.billing_plan?.next_billing_date ?? ""} /></label><label className="cache-toggle"><input name="auto_renew" type="checkbox" defaultChecked={item.billing_plan?.auto_renew} />到期后继续自动续费</label></div></DialogFrame>;
 }
 
 function PaymentDialog({ currency, amount, pending, error, onClose, onSubmit }: { currency: string; amount: string; pending: boolean; error: unknown; onClose: () => void; onSubmit: (value: { amount: string; currency: string; paid_at: string; notes?: string }) => void }) {

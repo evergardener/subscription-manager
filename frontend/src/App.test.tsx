@@ -37,7 +37,6 @@ test("logs in and opens the protected application shell", async () => {
       status: 200,
       headers: { "Content-Type": "application/json" },
     }))
-    .mockResolvedValueOnce(new Response(JSON.stringify({ expected: {}, actual: {}, by_vendor: [], by_category: [] }), { status: 200, headers: { "Content-Type": "application/json" } }))
     .mockResolvedValueOnce(new Response(JSON.stringify({ items: [], page: 1, page_size: 100, total: 0 }), { status: 200, headers: { "Content-Type": "application/json" } }))
     .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } }));
   renderApp("/login");
@@ -47,5 +46,5 @@ test("logs in and opens the protected application shell", async () => {
   fireEvent.click(screen.getByRole("button", { name: "登录" }));
   expect(await screen.findByRole("heading", { name: "今天，一切按计划。" })).toBeInTheDocument();
   expect(screen.getByRole("navigation", { name: "主导航" })).toBeInTheDocument();
-  expect(request).toHaveBeenCalledTimes(5);
+  expect(request).toHaveBeenCalledTimes(4);
 });
