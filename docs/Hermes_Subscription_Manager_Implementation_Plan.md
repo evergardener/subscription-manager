@@ -7,7 +7,7 @@
 ## 1. 当前状态
 
 - 产品与技术规格 v1.1 已完成，DEC-001 至 DEC-006 均已确认。
-- 项目已创建于 `C:\Projects\Github\subscription-manager`。
+- 当前开发仓库位于 `D:\Projects\subscription-manager\subscription-manager`，远端为 `evergardener/subscription-manager`。
 - P0 代码、依赖锁定、本地质量检查、本地 Docker 完整栈和局域网 Docker 交叉验证已通过；完整证据见 [P0_VERIFICATION.md](./P0_VERIFICATION.md)。
 - PostgreSQL 已固定为 `postgres:16.14-alpine3.22`，解决浮动标签在旧版 seccomp 宿主机上的兼容性和可复现性问题。
 - 新开发主机已从 lockfile 重建并完成本地质量门、Docker Linux Engine 完整栈和迁移往返复验。
@@ -15,7 +15,7 @@
 - P1、P2、P3 已实现并通过本地 PostgreSQL、完整 Compose 垂直切片和自动化测试；最终 GitHub Actions 证据见 [P3_VERIFICATION.md](./P3_VERIFICATION.md)。
 - P4 已实现登录、Dashboard、Subscriptions、Detail、Upcoming Events、Analytics、Settings、Token 管理与离线只读 PWA；桌面端和 360 px 端到端验收均通过，证据见 [P4_VERIFICATION.md](./P4_VERIFICATION.md)。
 - P5 Hermes Skill、Tool schema、安全调用器、确认流程和真实 API actor 验证已完成；证据见 [P5_VERIFICATION.md](./P5_VERIFICATION.md)。
-- 当前进入 P6 Hardening 阶段。
+- P6 Hardening 已完成并关闭：备份恢复、生产部署、运行手册、安全边界、性能门槛、完整浏览器 E2E、迁移与发布候选复验均有证据。
 - 每个已验证变更后自动创建 Git 提交；仓库约定见根目录 [AGENTS.md](../AGENTS.md)。
 
 ## 2. 架构理解
@@ -137,7 +137,7 @@ frontend/src/
 
 交付：备份恢复、Traefik/systemd 文档、安全头、速率限制、性能检查、完整 E2E 和运行手册。
 
-已完成的优先切片：登录内修改密码、主机本地离线密码重置、全 Session 撤销和安全审计；后端与前端安全响应头、登录/API 限流。阶段证据持续记录在 [P6_VERIFICATION.md](./P6_VERIFICATION.md)。
+已完成：登录内修改密码、主机本地离线密码重置、全 Session 撤销和安全审计；安全响应头与限流；备份和空库恢复；生产 Compose、Traefik、systemd 与运行手册；10k 性能门槛；360/768/桌面和 Edge/Chrome/Firefox E2E；取消状态、权限、迁移及发布候选复验。完整证据见 [P6_VERIFICATION.md](./P6_VERIFICATION.md)。
 
 退出门槛：规格第 15 章所有验收项完成并有证据。
 
