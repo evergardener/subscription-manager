@@ -147,6 +147,8 @@ The Hermes Skill is in `hermes/`. Runtime configuration uses `HERMES_SUBSCRIPTIO
 - Configuration comes from environment variables; `.env.example` contains placeholders only.
 - Logs are structured JSON and include `request_id`, `actor`, and `entity_id` fields.
 - User-supplied `X-Request-ID` is accepted only when non-empty and at most 100 characters.
+- API traffic defaults to 300 requests/minute per direct client and login attempts to 10/minute. Configure `API_RATE_LIMIT_PER_MINUTE` and `LOGIN_RATE_LIMIT_PER_MINUTE` for the deployment; HTTP 429 responses include `Retry-After`.
+- Backend and frontend responses set CSP, anti-framing, MIME sniffing, referrer, and browser permissions controls. HTTPS proxy requests also receive HSTS.
 - Configure `NTFY_BASE_URL` and replace `NTFY_TOPIC=replace-me` before enabling real notification delivery. With the placeholder topic, scheduler scanning is explicitly skipped and logged.
 - The Dashboard retrieves the European Central Bank's latest working-day reference rates through the backend and caches them for six hours. Outbound HTTPS to `www.ecb.europa.eu` is required for the optional CNY estimate; original-currency totals remain available when it is unreachable.
 
@@ -157,6 +159,8 @@ The Hermes Skill is in `hermes/`. Runtime configuration uses `HERMES_SUBSCRIPTIO
 - [P0 verification record](docs/P0_VERIFICATION.md)
 - [P3 verification record](docs/P3_VERIFICATION.md)
 - [P4 verification record](docs/P4_VERIFICATION.md)
+- [P5 verification record](docs/P5_VERIFICATION.md)
+- [P6 verification record](docs/P6_VERIFICATION.md)
 - [Development host migration handoff](docs/DEVELOPMENT_HOST_HANDOFF.md)
 
 Any behavior that deviates from the approved specification must update the Markdown decision record before code changes are accepted.

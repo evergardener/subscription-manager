@@ -14,7 +14,7 @@ from app.core.database import dispose_engine
 from app.core.errors import install_exception_handlers
 from app.core.event_loop import configure_windows_event_loop
 from app.core.logging import configure_logging
-from app.core.middleware import RequestIdMiddleware
+from app.core.middleware import RateLimitMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware
 
 configure_windows_event_loop()
 settings = get_settings()
@@ -36,6 +36,12 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+    application.add_middleware(
+        RateLimitMiddleware,
+        api_limit=settings.api_rate_limit_per_minute,
+        login_limit=settings.login_rate_limit_per_minute,
+    )
+    application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(RequestIdMiddleware)
     install_exception_handlers(application)
     application.include_router(health_router)

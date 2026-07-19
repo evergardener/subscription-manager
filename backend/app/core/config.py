@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     scheduler_heartbeat_seconds: int = Field(default=60, ge=5, le=3600)
     session_absolute_hours: int = Field(default=24 * 7, ge=1, le=24 * 30)
     session_idle_minutes: int = Field(default=60, ge=5, le=24 * 60)
+    api_rate_limit_per_minute: int = Field(default=300, ge=10, le=10000)
+    login_rate_limit_per_minute: int = Field(default=10, ge=2, le=1000)
     cookie_secure: bool = False
     ntfy_base_url: str = "https://ntfy.sh"
     ntfy_topic: str = "replace-me"

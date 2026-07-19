@@ -27,6 +27,12 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   const subscriptionName = `P4 Validation ${testInfo.project.name}`;
   const tokenName = `P4 token ${testInfo.project.name}`;
   await login(page);
+  const shellResponse = await context.request.get("/");
+  expect(shellResponse.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(shellResponse.headers()["x-content-type-options"]).toBe("nosniff");
+  const healthResponse = await context.request.get("/api/v1/health/ready");
+  expect(healthResponse.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(healthResponse.headers()["x-content-type-options"]).toBe("nosniff");
   await page.getByRole("link", { name: "＋ 新建订阅" }).click();
   await page.getByLabel("名称").fill(subscriptionName);
   await page.getByLabel("供应商").fill("Hermes Labs");
