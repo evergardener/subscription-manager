@@ -110,6 +110,7 @@ class TransitionInput(BaseModel):
     target_status: SubscriptionStatus
     reason: str = Field(min_length=1, max_length=500)
     service_expiry_date: date | None = None
+    expected_version: int = Field(ge=1)
 
 
 class PaymentInput(BaseModel):
@@ -367,6 +368,8 @@ async def transition_subscription(
     item = await session.get(Subscription, subscription_id, with_for_update=True)
     if item is None:
         raise HTTPException(status_code=404, detail="subscription not found")
+    if item.version != payload.expected_version:
+        raise HTTPException(status_code=409, detail={"current_version": item.version})
     try:
         validate_transition(
             DomainStatus(item.status.value), DomainStatus(payload.target_status.value)

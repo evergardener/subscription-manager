@@ -86,6 +86,13 @@ export function updateServiceDates(item: Subscription, service_dates: ServiceDat
   });
 }
 
+export function transitionSubscription(item: Subscription, payload: { target_status: "pending_cancel" | "active"; reason: string; service_expiry_date?: string }) {
+  return apiRequest<Subscription>(`/api/v1/subscriptions/${item.id}/status-transitions`, {
+    method: "POST",
+    body: JSON.stringify({ ...payload, expected_version: item.version }),
+  });
+}
+
 export function setSubscriptionArchived(id: string, archived: boolean) {
   return apiRequest<Subscription>(`/api/v1/subscriptions/${id}/${archived ? "archive" : "restore"}`, { method: "POST" });
 }

@@ -71,6 +71,7 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   await expect(page.getByText("manual", { exact: true })).toBeVisible();
   const updatedDetail = await context.request.get(`/api/v1/subscriptions/${new URL(page.url()).pathname.split("/").pop()}`);
   expect(updatedDetail.ok()).toBeTruthy();
+  const subscriptionId = new URL(page.url()).pathname.split("/").pop() as string;
   const detailBody = (await updatedDetail.json()) as { billing_plan: { next_billing_date: string | null } };
   expect(detailBody.billing_plan.next_billing_date).not.toBe(nextMonth.toISOString().slice(0, 10));
 
@@ -82,6 +83,29 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   await rules.getByRole("button", { name: "保存提醒" }).click();
   await expect(page.getByText("提前 5 天 · billing")).toBeVisible();
   await expect(page.getByText("提前 1 天 · billing")).toBeVisible();
+
+  await page.getByRole("button", { name: "计划取消", exact: true }).click();
+  const cancelDialog = page.getByRole("dialog", { name: "计划取消订阅" });
+  await cancelDialog.getByLabel("服务到期").fill(nextMonth.toISOString().slice(0, 10));
+  await cancelDialog.getByLabel("原因").fill("E2E cancellation validation");
+  await cancelDialog.getByRole("button", { name: "确认计划取消" }).click();
+  await expect(page.getByText("pending_cancel", { exact: true })).toBeVisible();
+  await expect(page.getByText("已关闭", { exact: true })).toBeVisible();
+  const cancelledEventsResponse = await context.request.get("/api/v1/events/upcoming?days=366");
+  expect(cancelledEventsResponse.ok()).toBeTruthy();
+  const cancelledEvents = (await cancelledEventsResponse.json()) as Array<{ subscription_id: string; event_type: string; event_date: string; status: string }>;
+  expect(cancelledEvents.filter((event) => event.subscription_id === subscriptionId && event.event_type === "billing" && event.event_date > nextMonth.toISOString().slice(0, 10))).toHaveLength(0);
+
+  await page.getByRole("button", { name: "撤销取消", exact: true }).click();
+  const resumeDialog = page.getByRole("dialog", { name: "撤销取消计划" });
+  await resumeDialog.getByLabel("原因").fill("E2E cancellation withdrawn");
+  await resumeDialog.getByRole("button", { name: "确认撤销" }).click();
+  await expect(page.getByText("active", { exact: true })).toBeVisible();
+  await expect(page.getByText("已开启", { exact: true })).toBeVisible();
+  const restoredEventsResponse = await context.request.get("/api/v1/events/upcoming?days=366");
+  expect(restoredEventsResponse.ok()).toBeTruthy();
+  const restoredEvents = (await restoredEventsResponse.json()) as Array<{ subscription_id: string; event_type: string; event_date: string; status: string }>;
+  expect(restoredEvents.some((event) => event.subscription_id === subscriptionId && event.event_type === "billing" && event.event_date > nextMonth.toISOString().slice(0, 10) && event.status === "planned")).toBeTruthy();
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "归档", exact: true }).click();
@@ -95,7 +119,12 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   const tokenDialog = page.getByRole("dialog", { name: "创建 API Token" });
   await tokenDialog.getByLabel("名称").fill(tokenName);
   await tokenDialog.getByRole("button", { name: "创建 Token" }).click();
-  await expect(page.getByRole("dialog", { name: "保存 API Token" })).toContainText("hsm_");
+  const revealDialog = page.getByRole("dialog", { name: "保存 API Token" });
+  await expect(revealDialog).toContainText("hsm_");
+  const rawToken = (await revealDialog.locator("code").textContent()) as string;
+  const bearerHeaders = { Authorization: `Bearer ${rawToken}` };
+  expect((await context.request.get("/api/v1/audit-logs", { headers: bearerHeaders })).status()).toBe(403);
+  expect((await context.request.get("/api/v1/api-tokens", { headers: bearerHeaders })).status()).toBe(403);
   await page.getByRole("button", { name: "我已安全保存" }).click();
   page.once("dialog", (dialog) => dialog.accept());
   const tokenRow = page.locator(".token-list article").filter({ hasText: tokenName });
@@ -105,6 +134,7 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   await page.getByRole("link", { name: "订阅", exact: true }).click();
   await context.setOffline(true);
   await expect(page.getByText("离线只读", { exact: true })).toBeVisible();
+  await expect(page.getByText(/数据可能已过期|写操作已禁用/)).toBeVisible();
   await expect(page.getByRole("button", { name: "＋ 新建订阅" })).toBeDisabled();
   await context.setOffline(false);
 
@@ -123,6 +153,18 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
     await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
     await page.getByLabel("用户名").fill(username);
     await page.getByLabel("密码").fill(changedPassword);
+    await page.getByRole("button", { name: "登录", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "今天，一切按计划。" })).toBeVisible();
+    await page.getByRole("link", { name: "设置", exact: true }).click();
+    await page.getByRole("button", { name: "修改密码", exact: true }).click();
+    const restorePasswordDialog = page.getByRole("dialog", { name: "修改密码" });
+    await restorePasswordDialog.getByLabel("当前密码").fill(changedPassword);
+    await restorePasswordDialog.getByLabel("新密码", { exact: true }).fill(password);
+    await restorePasswordDialog.getByLabel("再次输入新密码").fill(password);
+    await restorePasswordDialog.getByRole("button", { name: "修改并退出全部设备" }).click();
+    await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
+    await page.getByLabel("用户名").fill(username);
+    await page.getByLabel("密码").fill(password);
     await page.getByRole("button", { name: "登录", exact: true }).click();
     await expect(page.getByRole("heading", { name: "今天，一切按计划。" })).toBeVisible();
   }

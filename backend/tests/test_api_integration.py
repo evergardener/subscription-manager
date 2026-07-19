@@ -85,10 +85,22 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
             "target_status": "pending_cancel",
             "reason": "cancelled with vendor",
             "service_expiry_date": "2026-08-15",
+            "expected_version": created.json()["version"],
         },
     )
     assert transition.status_code == 200
     assert transition.json()["status"] == "pending_cancel"
+    stale_transition = await client.post(
+        f"/api/v1/subscriptions/{created.json()['id']}/status-transitions",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "target_status": "active",
+            "reason": "stale browser",
+            "expected_version": created.json()["version"],
+        },
+    )
+    assert stale_transition.status_code == 409
+    assert stale_transition.json()["details"]["current_version"] == transition.json()["version"]
     await db_session.rollback()
     cancelled = list(
         await db_session.scalars(
@@ -99,7 +111,11 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     restored = await client.post(
         f"/api/v1/subscriptions/{created.json()['id']}/status-transitions",
         headers={"X-CSRF-Token": csrf},
-        json={"target_status": "active", "reason": "cancellation withdrawn"},
+        json={
+            "target_status": "active",
+            "reason": "cancellation withdrawn",
+            "expected_version": transition.json()["version"],
+        },
     )
     assert restored.status_code == 200
     await db_session.rollback()
