@@ -2,7 +2,7 @@
 
 Date: 2026-07-19  
 Implementation status: Complete  
-Existing local-instance rollout: Deferred until a new verified backup can be created
+Existing local-instance rollout: Complete
 
 ## Reminder ownership boundary
 
@@ -37,6 +37,9 @@ Existing local-instance rollout: Deferred until a new verified backup can be cre
 - Frontend ESLint, TypeScript, 9/9 unit tests, and production PWA build passed.
 - Development, bundled-production, and external-database Compose validation passed.
 
-## Local rollout hold
+## Existing local-instance rollout
 
-The existing local project `hermes-subscription-manager-local` remains healthy and still uses its initialized PostgreSQL database/role name `hermes`. A pre-upgrade backup attempt was rejected by the host approval/usage layer before execution, so no container, volume, or database mutation was performed. In accordance with the upgrade runbook, rollout is intentionally paused until a hashed backup can be created; the old database/role names must be preserved in that deployment's environment during upgrade.
+- A PostgreSQL custom-format backup was created before rollout as `subscription-manager-20260719T054205Z.dump`; its SHA-256 is `1fec664902a4cebf1c251a206a932cea8a0f69c4a639f6d84a2916b7f8f22317`.
+- The dump was restored into a new isolated database. Restore verification passed at migration `b6d2c9e41a70` with all three subscriptions, after which only the validation containers and volume were removed.
+- The existing project `hermes-subscription-manager-local` was rebuilt while preserving its initialized database/role name `hermes` and existing volume.
+- Post-upgrade verification returned 200 for UI and `/api/v1/health/ready`, confirmed migration `b6d2c9e41a70`, retained all three subscriptions, and found both Reminder Outbox claim-owner columns.
