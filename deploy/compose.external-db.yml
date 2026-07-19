@@ -1,4 +1,4 @@
-name: hermes-subscription-manager
+name: subscription-manager
 
 x-backend-environment: &backend-environment
   DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL for PostgreSQL 16 or newer}
@@ -7,8 +7,9 @@ x-backend-environment: &backend-environment
   COOKIE_SECURE: "true"
   API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-300}
   LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-10}
-  NTFY_BASE_URL: ${NTFY_BASE_URL:-https://ntfy.sh}
-  NTFY_TOPIC: ${NTFY_TOPIC:-replace-me}
+  NOTIFICATION_MODE: ${NOTIFICATION_MODE:-external}
+  SESSION_ABSOLUTE_HOURS: ${SESSION_ABSOLUTE_HOURS:-168}
+  SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-60}
   REMINDER_SCAN_DAYS: ${REMINDER_SCAN_DAYS:-30}
   REMINDER_GRACE_DAYS: ${REMINDER_GRACE_DAYS:-3}
   REMINDER_MAX_ATTEMPTS: ${REMINDER_MAX_ATTEMPTS:-5}
@@ -40,6 +41,7 @@ services:
     environment:
       <<: *backend-environment
       SCHEDULER_HEARTBEAT_SECONDS: ${SCHEDULER_HEARTBEAT_SECONDS:-60}
+      REMINDER_SCAN_INTERVAL_MINUTES: ${REMINDER_SCAN_INTERVAL_MINUTES:-5}
     command: ["python", "-m", "app.scheduler"]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -50,23 +52,15 @@ services:
     build: ../frontend
     depends_on:
       backend: { condition: service_healthy }
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.hermes.rule: Host(`${HERMES_DOMAIN:?set HERMES_DOMAIN}`)
-      traefik.http.routers.hermes.entrypoints: websecure
-      traefik.http.routers.hermes.tls: "true"
-      traefik.http.routers.hermes.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
-      traefik.http.services.hermes.loadbalancer.server.port: "80"
+    ports:
+      - "${SERVICE_BIND_ADDRESS:-127.0.0.1}:${SERVICE_PORT:-8080}:80"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
       interval: 10s
       timeout: 5s
       retries: 10
-    networks: [internal, traefik]
+    networks: [internal]
     restart: unless-stopped
 
 networks:
-  internal: { internal: true }
-  traefik:
-    external: true
-    name: ${TRAEFIK_NETWORK:-traefik}
+  internal: {}

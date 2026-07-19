@@ -14,10 +14,10 @@ $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $backup).Hash.ToLower
 if ($actualHash -ne $expectedHash.ToLowerInvariant()) { throw 'Backup SHA-256 verification failed.' }
 
 $env:POSTGRES_PASSWORD = 'restore-validation-only'
-$env:POSTGRES_DB = 'hermes_restore_validation'
-$env:POSTGRES_USER = 'hermes'
+$env:POSTGRES_DB = 'subscription_manager_restore_validation'
+$env:POSTGRES_USER = 'subscription_manager'
 $env:BACKEND_PORT = '18200'
-$containerPath = '/tmp/hermes-restore-validation.dump'
+$containerPath = '/tmp/subscription-manager-restore-validation.dump'
 
 try {
     & docker compose -p $ProjectName up -d db

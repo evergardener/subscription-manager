@@ -16,7 +16,7 @@
 - P4 已实现登录、Dashboard、Subscriptions、Detail、Upcoming Events、Analytics、Settings、Token 管理与离线只读 PWA；桌面端和 360 px 端到端验收均通过，证据见 [P4_VERIFICATION.md](./P4_VERIFICATION.md)。
 - P5 Hermes Skill、Tool schema、安全调用器、确认流程和真实 API actor 验证已完成；证据见 [P5_VERIFICATION.md](./P5_VERIFICATION.md)。
 - P6 Hardening 已完成并关闭：备份恢复、生产部署、运行手册、安全边界、性能门槛、完整浏览器 E2E、迁移与发布候选复验均有证据。
-- P6.1 生产适配重构已确认：移除 ntfy/Traefik 耦合，建立 Hermes-first Reminder Outbox、完整日常 Tool 能力和通用反向代理边界；设计见 [HERMES_FIRST_ARCHITECTURE.md](./HERMES_FIRST_ARCHITECTURE.md)。
+- P6.1 生产适配重构已实现并通过隔离验证：移除 ntfy/Traefik 耦合，建立 Hermes-first Reminder Outbox、完整日常 Tool 能力和通用反向代理边界；设计见 [HERMES_FIRST_ARCHITECTURE.md](./HERMES_FIRST_ARCHITECTURE.md)，证据见 [P6_1_VERIFICATION.md](./P6_1_VERIFICATION.md)。现有本地实例待安全备份后升级。
 - 每个已验证变更后自动创建 Git 提交；仓库约定见根目录 [AGENTS.md](../AGENTS.md)。
 
 ## 2. 架构理解
@@ -26,10 +26,10 @@
 1. React PWA：人工查询和维护订阅，使用同源 HttpOnly Session。
 2. FastAPI Backend：唯一业务边界，负责鉴权、校验、领域规则、审计和 OpenAPI。
 3. PostgreSQL：保存订阅、计费计划、持久化 Billing Event、付款、提醒、投递、身份和审计数据。
-4. Scheduler：使用与 Backend 相同的 Python 代码镜像，以独立命令运行；负责事件滚动生成、提醒扫描、投递领取和重试。
-5. Hermes Skill/Tools：使用独立 scoped API Token 调用 Backend，不直接访问数据库。
+4. Scheduler：使用与 Backend 相同的 Python 代码镜像，以独立命令运行；负责事件滚动生成、Reminder Outbox 和重试状态维护。
+5. Hermes Skill/Tools：使用独立 scoped API Token 调用 Backend，不直接访问数据库；单一周期任务消费 Outbox 并反馈 ack/fail。
 
-n8n 不是核心运行依赖，只能作为带 `reminders:scan` scope 的外部触发器。MVP 通知渠道为 ntfy。
+通知边界以 DEC-008 为准：Subscription Manager 不实现最终供应商通知，Hermes 负责最终渠道。n8n 不是核心运行依赖。
 
 ## 3. 代码与模块边界
 
@@ -44,8 +44,7 @@ backend/app/
 ├─ repositories/        # SQLAlchemy 数据访问
 ├─ models/              # ORM 映射
 ├─ schemas/             # Pydantic 请求/响应
-├─ notifications/       # Adapter 接口与 ntfy 实现
-├─ scheduler/           # 事件生成、扫描、领取、重试
+├─ scheduler/           # 事件生成、Outbox、租约与重试维护
 ├─ audit/               # before/after、actor、request_id
 └─ core/                # 配置、日志、数据库、异常
 ```
@@ -74,7 +73,7 @@ frontend/src/
 | Backend API | FastAPI、Pydantic v2、pydantic-settings | HTTP、schema、配置。 |
 | 数据库 | SQLAlchemy 2.x、Alembic、psycopg | ORM、migration、PostgreSQL driver。 |
 | 调度 | APScheduler | 独立 scheduler 进程的周期触发。 |
-| HTTP | httpx | ntfy 调用和测试客户端。 |
+| HTTP | httpx | API 测试客户端和受控外部汇率请求。 |
 | 密码 | argon2-cffi | 管理员密码和敏感 Token 哈希。 |
 | 日期 | Python datetime + dateutil | 日历周期计算；核心算法保持纯函数。 |
 | Backend 质量 | pytest、pytest-asyncio、Ruff、mypy | 测试、lint、类型检查。 |
@@ -118,7 +117,7 @@ frontend/src/
 
 ### P3：Reminder
 
-交付：独立 scheduler、数据库领取锁、processing 租约、失败重试、补发、dry-run 和 ntfy Adapter。
+历史交付：独立 scheduler、数据库领取锁、processing 租约、失败重试、补发和 ntfy Adapter；最终通知 Adapter 在 P6.1 按 DEC-008 被外部 Outbox 消费替代。
 
 退出门槛：并发 worker 不重复发送；停机恢复、dead/expired 状态和人工重试可审计。
 
@@ -136,9 +135,9 @@ frontend/src/
 
 ### P6：Hardening
 
-交付：备份恢复、Traefik/systemd 文档、安全头、速率限制、性能检查、完整 E2E 和运行手册。
+交付：备份恢复、生产 Compose/systemd 文档、安全头、速率限制、性能检查、完整 E2E 和运行手册。
 
-已完成：登录内修改密码、主机本地离线密码重置、全 Session 撤销和安全审计；安全响应头与限流；备份和空库恢复；生产 Compose、Traefik、systemd 与运行手册；10k 性能门槛；360/768/桌面和 Edge/Chrome/Firefox E2E；取消状态、权限、迁移及发布候选复验。完整证据见 [P6_VERIFICATION.md](./P6_VERIFICATION.md)。
+已完成：登录内修改密码、主机本地离线密码重置、全 Session 撤销和安全审计；安全响应头与限流；备份和空库恢复；生产 Compose/systemd 与运行手册；10k 性能门槛；360/768/桌面和 Edge/Chrome/Firefox E2E；取消状态、权限、迁移及发布候选复验。P6.1 进一步移除具体代理和通知供应商耦合。完整证据见 [P6_VERIFICATION.md](./P6_VERIFICATION.md)。
 
 退出门槛：规格第 15 章所有验收项完成并有证据。
 

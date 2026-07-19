@@ -16,7 +16,7 @@ Status: Complete
 - PostgreSQL custom-format backups include SHA-256 sidecars and default seven-day retention.
 - Restore verification checks the hash, restores into an empty volume, runs migrations, requires Backend ready status, validates required tables and Alembic revision, and performs a core subscription query.
 - Restore passed against the local database with three subscriptions and an isolated seeded database. Temporary validation volumes were removed.
-- Production Compose definitions cover bundled and external PostgreSQL without publishing Backend or database ports. Traefik labels require an explicit domain, TLS entrypoint, certificate resolver, and external proxy network.
+- The original P6 production Compose definitions covered bundled and external PostgreSQL without publishing Backend or database ports. P6.1 subsequently removed the Traefik-specific labels/network and publishes only Frontend to a configurable loopback endpoint for a user-managed proxy.
 - systemd units manage application lifecycle and a persistent daily backup timer. The runbook covers install, health, logs, upgrade, rollback, password recovery, Token rotation, notifications, the single-Scheduler rule, and restore sequencing.
 - The bundled production topology passed migration, Backend health, Frontend health, and Frontend-to-Backend ready-proxy checks on an isolated network and empty volume.
 

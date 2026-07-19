@@ -4,7 +4,7 @@ Self-hosted subscription and digital-service lifecycle manager. This repository 
 
 ## Current status
 
-P0 through P4 are implemented. The backend provides the domain schema, authentication, core subscription APIs, persistent billing events, payments, audit logs, reminder rules, and the independent ntfy-capable scheduler. The frontend is now an authenticated responsive PWA with the complete MVP management workflow and offline read-only behavior.
+P0 through P6 are implemented. The backend provides the domain schema, authentication, core subscription APIs, persistent billing events, payments, audit logs, reminder rules, and a reliable Reminder Outbox. The frontend is an authenticated responsive PWA with the complete management workflow and offline read-only behavior. Hermes can perform routine read/write operations and consume due reminders through scoped Tools.
 
 Included:
 
@@ -37,7 +37,7 @@ subscription-manager/
 ## Full-stack startup
 
 1. Copy `.env.example` to `.env`.
-2. Replace `POSTGRES_PASSWORD` and the ntfy placeholder values. Do not commit `.env`.
+2. Replace `POSTGRES_PASSWORD`. Keep `NOTIFICATION_MODE=external` when Hermes will deliver reminders, or use `disabled` when only event maintenance is required. Do not commit `.env`.
 3. Run:
 
 ```powershell
@@ -78,7 +78,7 @@ The command prompts twice without echoing the password, revokes all Sessions, an
 ```powershell
 cd backend
 uv sync --frozen
-$env:DATABASE_URL = 'postgresql+psycopg://hermes:password@localhost:5432/hermes'
+$env:DATABASE_URL = 'postgresql+psycopg://subscription_manager:password@localhost:5432/subscription_manager'
 uv run alembic upgrade head
 uv run python -m app.server
 ```
@@ -142,7 +142,9 @@ For the destructive-safety-scoped backup/restore gate, run:
 
 Production backup and disaster-recovery steps are in the [backup and restore runbook](docs/BACKUP_RESTORE.md). A dump is not considered valid until the empty-database verifier passes.
 
-Production Traefik, systemd, bundled/external PostgreSQL, upgrades, rollback, logging, Token rotation, and notification recovery are covered by the [operations runbook](docs/OPERATIONS.md).
+Production reverse-proxy integration, systemd, bundled/external PostgreSQL, upgrades, rollback, logging, Token rotation, and Hermes reminder consumption are covered by the [operations runbook](docs/OPERATIONS.md).
+
+Every supported environment variable, its scope, default, and existing-volume behavior is documented in the [configuration reference](docs/CONFIGURATION.md).
 
 Run the isolated 10,000-subscription P95 gate with:
 
@@ -165,7 +167,8 @@ Run the isolated 10,000-subscription P95 gate with:
 - User-supplied `X-Request-ID` is accepted only when non-empty and at most 100 characters.
 - API traffic defaults to 300 requests/minute per direct client and login attempts to 10/minute. Configure `API_RATE_LIMIT_PER_MINUTE` and `LOGIN_RATE_LIMIT_PER_MINUTE` for the deployment; HTTP 429 responses include `Retry-After`.
 - Backend and frontend responses set CSP, anti-framing, MIME sniffing, referrer, and browser permissions controls. HTTPS proxy requests also receive HSTS.
-- Configure `NTFY_BASE_URL` and replace `NTFY_TOPIC=replace-me` before enabling real notification delivery. With the placeholder topic, scheduler scanning is explicitly skipped and logged.
+- `NOTIFICATION_MODE=external` creates durable due-reminder Outbox records for Hermes to claim, deliver, and acknowledge. `disabled` keeps billing/service events current but does not create reminder deliveries. Subscription Manager intentionally contains no ntfy or provider-specific delivery integration.
+- The included Skill is an API capability description, not a background daemon. Production reminders require exactly one recurring Hermes task using a Token with `reminders:consume` scope. See [Hermes-first architecture](docs/HERMES_FIRST_ARCHITECTURE.md).
 - The Dashboard retrieves the European Central Bank's latest working-day reference rates through the backend and caches them for six hours. Outbound HTTPS to `www.ecb.europa.eu` is required for the optional CNY estimate; original-currency totals remain available when it is unreachable.
 
 ## Authoritative documents
@@ -177,6 +180,9 @@ Run the isolated 10,000-subscription P95 gate with:
 - [P4 verification record](docs/P4_VERIFICATION.md)
 - [P5 verification record](docs/P5_VERIFICATION.md)
 - [P6 verification record](docs/P6_VERIFICATION.md)
+- [P6.1 Hermes-first verification record](docs/P6_1_VERIFICATION.md)
+- [Configuration reference](docs/CONFIGURATION.md)
+- [Hermes-first architecture](docs/HERMES_FIRST_ARCHITECTURE.md)
 - [Development host migration handoff](docs/DEVELOPMENT_HOST_HANDOFF.md)
 
 Any behavior that deviates from the approved specification must update the Markdown decision record before code changes are accepted.

@@ -1,0 +1,18 @@
+[Unit]
+Description=Subscription Manager
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/subscription-manager
+ExecStart=/usr/bin/docker compose --env-file /opt/subscription-manager/.env -f /opt/subscription-manager/deploy/compose.production.yml -p subscription-manager up -d --build
+ExecReload=/usr/bin/docker compose --env-file /opt/subscription-manager/.env -f /opt/subscription-manager/deploy/compose.production.yml -p subscription-manager up -d --build
+ExecStop=/usr/bin/docker compose --env-file /opt/subscription-manager/.env -f /opt/subscription-manager/deploy/compose.production.yml -p subscription-manager down
+TimeoutStartSec=600
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

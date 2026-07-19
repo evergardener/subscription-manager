@@ -1,11 +1,11 @@
-name: hermes-subscription-manager
+name: subscription-manager
 
 services:
   db:
     image: postgres:16.14-alpine3.22
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-hermes}
-      POSTGRES_USER: ${POSTGRES_USER:-hermes}
+      POSTGRES_DB: ${POSTGRES_DB:-subscription_manager}
+      POSTGRES_USER: ${POSTGRES_USER:-subscription_manager}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -20,7 +20,7 @@ services:
     build:
       context: ./backend
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hermes}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hermes}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-subscription_manager}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-subscription_manager}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     command: ["alembic", "upgrade", "head"]
@@ -33,14 +33,15 @@ services:
     build:
       context: ./backend
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hermes}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hermes}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-subscription_manager}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-subscription_manager}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-300}
       LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-10}
-      NTFY_BASE_URL: ${NTFY_BASE_URL:-https://ntfy.sh}
-      NTFY_TOPIC: ${NTFY_TOPIC:-replace-me}
+      NOTIFICATION_MODE: ${NOTIFICATION_MODE:-external}
+      SESSION_ABSOLUTE_HOURS: ${SESSION_ABSOLUTE_HOURS:-168}
+      SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-60}
       REMINDER_SCAN_DAYS: ${REMINDER_SCAN_DAYS:-30}
       REMINDER_GRACE_DAYS: ${REMINDER_GRACE_DAYS:-3}
       REMINDER_MAX_ATTEMPTS: ${REMINDER_MAX_ATTEMPTS:-5}
@@ -67,12 +68,12 @@ services:
     build:
       context: ./backend
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hermes}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hermes}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-subscription_manager}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-subscription_manager}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SCHEDULER_HEARTBEAT_SECONDS: ${SCHEDULER_HEARTBEAT_SECONDS:-60}
-      NTFY_BASE_URL: ${NTFY_BASE_URL:-https://ntfy.sh}
-      NTFY_TOPIC: ${NTFY_TOPIC:-replace-me}
+      NOTIFICATION_MODE: ${NOTIFICATION_MODE:-external}
+      REMINDER_SCAN_INTERVAL_MINUTES: ${REMINDER_SCAN_INTERVAL_MINUTES:-5}
       REMINDER_SCAN_DAYS: ${REMINDER_SCAN_DAYS:-30}
       REMINDER_GRACE_DAYS: ${REMINDER_GRACE_DAYS:-3}
       REMINDER_MAX_ATTEMPTS: ${REMINDER_MAX_ATTEMPTS:-5}

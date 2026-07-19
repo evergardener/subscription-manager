@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     backend_port: int = Field(default=8000, ge=1, le=65535)
     environment: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
-    database_url: str = "postgresql+psycopg://hermes:change-me@localhost:5432/hermes"
+    database_url: str = (
+        "postgresql+psycopg://subscription_manager:change-me@localhost:5432/subscription_manager"
+    )
     scheduler_heartbeat_seconds: int = Field(default=60, ge=5, le=3600)
     reminder_scan_interval_minutes: int = Field(default=5, ge=1, le=1440)
     session_absolute_hours: int = Field(default=24 * 7, ge=1, le=24 * 30)

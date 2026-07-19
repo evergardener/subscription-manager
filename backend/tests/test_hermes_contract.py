@@ -2,14 +2,25 @@ import json
 import os
 import subprocess
 import sys
+from collections.abc import Callable
 from datetime import date
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from typing import Any, cast
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 SCRIPT = Path(__file__).parents[2] / "hermes" / "scripts" / "call_tool.py"
 TOOLS = Path(__file__).parents[2] / "hermes" / "tools.json"
+
+spec = spec_from_file_location("hermes_call_tool", SCRIPT)
+assert spec is not None and spec.loader is not None
+tool_module = module_from_spec(spec)
+spec.loader.exec_module(tool_module)
+tool_endpoint = cast(
+    Callable[[str, dict[str, Any]], tuple[str, str, Any]], tool_module.__dict__["endpoint"]
+)
 
 
 def run_tool(*arguments: str) -> subprocess.CompletedProcess[str]:
@@ -67,8 +78,7 @@ def test_tool_runner_requires_confirmation_and_complete_arguments() -> None:
 
 def test_tool_schema_covers_hermes_first_routine_operations() -> None:
     names = {
-        item["function"]["name"]
-        for item in json.loads(TOOLS.read_text(encoding="utf-8"))["tools"]
+        item["function"]["name"] for item in json.loads(TOOLS.read_text(encoding="utf-8"))["tools"]
     }
     assert {
         "subscription_restore",
@@ -80,6 +90,44 @@ def test_tool_schema_covers_hermes_first_routine_operations() -> None:
         "reminder_fail",
         "audit_recent",
     } <= names
+
+
+def test_hermes_first_tool_endpoint_mappings() -> None:
+    subscription_id = "00000000-0000-0000-0000-000000000001"
+    delivery_id = "00000000-0000-0000-0000-000000000002"
+    assert tool_endpoint("subscription_restore", {"subscription_id": subscription_id}) == (
+        "POST",
+        f"/api/v1/subscriptions/{subscription_id}/restore",
+        None,
+    )
+    assert tool_endpoint(
+        "reminder_rules_set",
+        {
+            "subscription_id": subscription_id,
+            "rules": [{"event_type": "billing", "offset_days": 1}],
+        },
+    ) == (
+        "PUT",
+        f"/api/v1/subscriptions/{subscription_id}/reminder-rules",
+        [{"event_type": "billing", "offset_days": 1}],
+    )
+    assert tool_endpoint("reminders_claim", {}) == (
+        "POST",
+        "/api/v1/reminders/claim",
+        {"limit": 20},
+    )
+    assert tool_endpoint("reminder_ack", {"delivery_id": delivery_id}) == (
+        "POST",
+        f"/api/v1/reminders/deliveries/{delivery_id}/ack",
+        None,
+    )
+    assert tool_endpoint(
+        "reminder_fail", {"delivery_id": delivery_id, "error": "delivery failed"}
+    ) == (
+        "POST",
+        f"/api/v1/reminders/deliveries/{delivery_id}/fail",
+        {"error": "delivery failed"},
+    )
 
 
 async def test_hermes_token_real_api_actor_scopes_and_header_spoofing(

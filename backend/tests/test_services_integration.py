@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +31,7 @@ from app.services.business import (
     replace_plan,
 )
 from app.services.reminders import (
+    ReminderStateError,
     acknowledge_delivery,
     claim_deliveries,
     fail_delivery,
@@ -145,8 +147,23 @@ async def test_reminder_services_generate_claim_ack_retry_and_dead(
     assert len(claimed) == 1
     sent = await db_session.get(ReminderDelivery, claimed[0])
     assert sent is not None
+    with pytest.raises(ReminderStateError, match="another actor"):
+        acknowledge_delivery(sent, ActorType.HERMES, "hermes-secondary", now)
     acknowledge_delivery(sent, ActorType.HERMES, "hermes-primary", now)
     assert sent.status == DeliveryStatus.SENT
+
+    expired_lease = ReminderDelivery(
+        rule_id=rule.id,
+        event_key=f"expired-lease-{uuid.uuid4()}",
+        scheduled_for=now - timedelta(minutes=2),
+        status=DeliveryStatus.PROCESSING,
+        attempt_count=1,
+        lease_expires_at=now,
+        claimed_by_actor_type=ActorType.HERMES,
+        claimed_by_actor_id="hermes-primary",
+    )
+    with pytest.raises(ReminderStateError, match="lease has expired"):
+        acknowledge_delivery(expired_lease, ActorType.HERMES, "hermes-primary", now)
 
     failed = ReminderDelivery(
         rule_id=rule.id,

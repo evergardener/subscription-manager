@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up Subscription Manager PostgreSQL
+Requires=docker.service
+After=docker.service subscription-manager.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/subscription-manager
+EnvironmentFile=/opt/subscription-manager/.env
+ExecStart=/opt/subscription-manager/scripts/backup-postgres.sh

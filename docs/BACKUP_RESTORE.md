@@ -5,10 +5,10 @@
 Run on the application host while PostgreSQL is healthy:
 
 ```powershell
-./scripts/backup-postgres.ps1 -ProjectName hermes-subscription-manager -RetentionDays 7
+./scripts/backup-postgres.ps1 -ProjectName subscription-manager -RetentionDays 7
 ```
 
-The command creates a PostgreSQL custom-format dump and a `.sha256` sidecar under `backups/`. The directory and dump formats are ignored by Git. The cleanup step removes only matching `hermes-*.dump` files older than the configured retention period from the exact output directory.
+The command creates a PostgreSQL custom-format dump and a `.sha256` sidecar under `backups/`. The directory and dump formats are ignored by Git. The cleanup step removes only matching `subscription-manager-*.dump` files older than the configured retention period from the exact output directory.
 
 Schedule this command daily. Keep at least one encrypted copy outside the application host. Suitable options include an encrypted backup volume, an encrypted object-storage bucket, or encrypting each dump with age/GPG before upload. Encryption keys must not be stored beside the backups or committed to this repository.
 
@@ -17,7 +17,7 @@ Schedule this command daily. Keep at least one encrypted copy outside the applic
 Test a dump in a disposable empty database:
 
 ```powershell
-./scripts/verify-restore.ps1 -BackupPath ./backups/hermes-YYYYMMDDTHHMMSSZ.dump
+./scripts/verify-restore.ps1 -BackupPath ./backups/subscription-manager-YYYYMMDDTHHMMSSZ.dump
 ```
 
 The verifier requires the SHA-256 sidecar, restores only into an isolated Compose project whose name ends in `restore-validation`, runs migrations, starts Backend, checks `/health/ready`, verifies required tables and the Alembic revision, and performs a core subscription query. Its temporary database volume is removed afterward.

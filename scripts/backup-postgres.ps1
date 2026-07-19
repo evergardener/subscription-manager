@@ -1,9 +1,9 @@
 param(
-    [string]$ProjectName = 'hermes-subscription-manager',
+    [string]$ProjectName = 'subscription-manager',
     [string]$OutputDirectory = '',
     [int]$RetentionDays = 7,
-    [string]$Database = $(if ($env:POSTGRES_DB) { $env:POSTGRES_DB } else { 'hermes' }),
-    [string]$User = $(if ($env:POSTGRES_USER) { $env:POSTGRES_USER } else { 'hermes' })
+    [string]$Database = $(if ($env:POSTGRES_DB) { $env:POSTGRES_DB } else { 'subscription_manager' }),
+    [string]$User = $(if ($env:POSTGRES_USER) { $env:POSTGRES_USER } else { 'subscription_manager' })
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,7 +15,7 @@ if ($directory -eq [System.IO.Path]::GetPathRoot($directory)) { throw 'Refusing 
 New-Item -ItemType Directory -Force -Path $directory | Out-Null
 
 $timestamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
-$name = "hermes-$timestamp.dump"
+$name = "subscription-manager-$timestamp.dump"
 $containerPath = "/tmp/$name"
 $outputPath = Join-Path $directory $name
 
@@ -31,7 +31,7 @@ try {
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $outputPath).Hash.ToLowerInvariant()
 Set-Content -LiteralPath "$outputPath.sha256" -Value "$hash  $name" -Encoding ascii
 $cutoff = (Get-Date).ToUniversalTime().AddDays(-$RetentionDays)
-Get-ChildItem -LiteralPath $directory -File -Filter 'hermes-*.dump' |
+Get-ChildItem -LiteralPath $directory -File -Filter 'subscription-manager-*.dump' |
     Where-Object { $_.LastWriteTimeUtc -lt $cutoff } |
     ForEach-Object {
         $expiredDump = $_.FullName

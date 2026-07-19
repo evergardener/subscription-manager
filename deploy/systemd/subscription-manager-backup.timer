@@ -1,11 +1,11 @@
 [Unit]
-Description=Daily Hermes Subscription Manager backup
+Description=Daily Subscription Manager backup
 
 [Timer]
 OnCalendar=*-*-* 02:15:00
 Persistent=true
 RandomizedDelaySec=15m
-Unit=hermes-backup.service
+Unit=subscription-manager-backup.service
 
 [Install]
 WantedBy=timers.target
