@@ -30,5 +30,12 @@ Status: In progress
 
 ## Remaining P6 work
 
-- Traefik and systemd examples plus long-running operations guide.
 - 10,000-subscription performance checks and remaining release-candidate evidence.
+
+## Completed: production operations
+
+- Standalone production Compose definitions cover bundled and external PostgreSQL without publishing Backend or database ports.
+- Traefik labels require an explicit domain, TLS entrypoint, certificate resolver, and external proxy network.
+- systemd units manage application lifecycle and a persistent daily backup timer.
+- The operations guide covers install, health, logs, upgrades, rollback, password recovery, Token rotation, notifications, single-Scheduler constraints, and restore sequencing.
+- The bundled production topology was started with an isolated Traefik network and empty PostgreSQL volume; migration, Backend health, Frontend health, and the Frontend-to-Backend ready proxy all passed before cleanup.

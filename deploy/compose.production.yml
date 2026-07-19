@@ -1,0 +1,91 @@
+name: hermes-subscription-manager
+
+services:
+  db:
+    image: postgres:16.14-alpine3.22
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hermes}
+      POSTGRES_USER: ${POSTGRES_USER:-hermes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [internal]
+    restart: unless-stopped
+
+  migrate:
+    build: ../backend
+    environment: &backend-environment
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hermes}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hermes}
+      ENVIRONMENT: production
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      COOKIE_SECURE: "true"
+      API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-300}
+      LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-10}
+      NTFY_BASE_URL: ${NTFY_BASE_URL:-https://ntfy.sh}
+      NTFY_TOPIC: ${NTFY_TOPIC:-replace-me}
+      REMINDER_SCAN_DAYS: ${REMINDER_SCAN_DAYS:-30}
+      REMINDER_GRACE_DAYS: ${REMINDER_GRACE_DAYS:-3}
+      REMINDER_MAX_ATTEMPTS: ${REMINDER_MAX_ATTEMPTS:-5}
+      REMINDER_LEASE_SECONDS: ${REMINDER_LEASE_SECONDS:-120}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [internal]
+    restart: "no"
+
+  backend:
+    build: ../backend
+    environment: *backend-environment
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+    restart: unless-stopped
+
+  scheduler:
+    build: ../backend
+    environment:
+      <<: *backend-environment
+      SCHEDULER_HEARTBEAT_SECONDS: ${SCHEDULER_HEARTBEAT_SECONDS:-60}
+    command: ["python", "-m", "app.scheduler"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    networks: [internal]
+    restart: unless-stopped
+
+  frontend:
+    build: ../frontend
+    depends_on:
+      backend: { condition: service_healthy }
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.hermes.rule: Host(`${HERMES_DOMAIN:?set HERMES_DOMAIN}`)
+      traefik.http.routers.hermes.entrypoints: websecure
+      traefik.http.routers.hermes.tls: "true"
+      traefik.http.routers.hermes.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      traefik.http.services.hermes.loadbalancer.server.port: "80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal, traefik]
+    restart: unless-stopped
+
+networks:
+  internal: { internal: true }
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik}
+
+volumes:
+  postgres-data:

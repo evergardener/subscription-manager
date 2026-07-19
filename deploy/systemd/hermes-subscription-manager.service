@@ -1,0 +1,18 @@
+[Unit]
+Description=Hermes Subscription Manager
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/hermes-subscription-manager
+ExecStart=/usr/bin/docker compose --env-file /opt/hermes-subscription-manager/.env -f /opt/hermes-subscription-manager/deploy/compose.production.yml -p hermes-subscription-manager up -d --build
+ExecReload=/usr/bin/docker compose --env-file /opt/hermes-subscription-manager/.env -f /opt/hermes-subscription-manager/deploy/compose.production.yml -p hermes-subscription-manager up -d --build
+ExecStop=/usr/bin/docker compose --env-file /opt/hermes-subscription-manager/.env -f /opt/hermes-subscription-manager/deploy/compose.production.yml -p hermes-subscription-manager down
+TimeoutStartSec=600
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

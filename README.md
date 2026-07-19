@@ -142,6 +142,8 @@ For the destructive-safety-scoped backup/restore gate, run:
 
 Production backup and disaster-recovery steps are in the [backup and restore runbook](docs/BACKUP_RESTORE.md). A dump is not considered valid until the empty-database verifier passes.
 
+Production Traefik, systemd, bundled/external PostgreSQL, upgrades, rollback, logging, Token rotation, and notification recovery are covered by the [operations runbook](docs/OPERATIONS.md).
+
 ## Development workflow
 
 - Use the Docker Linux Engine installed on the active development host for integration and runtime validation.

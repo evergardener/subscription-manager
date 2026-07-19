@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up Hermes Subscription Manager PostgreSQL
+Requires=docker.service
+After=docker.service hermes-subscription-manager.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/hermes-subscription-manager
+EnvironmentFile=/opt/hermes-subscription-manager/.env
+ExecStart=/opt/hermes-subscription-manager/scripts/backup-postgres.sh
