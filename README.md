@@ -65,6 +65,14 @@ Invoke-RestMethod -Method Post http://localhost:8000/api/v1/auth/bootstrap `
 
 The bootstrap endpoint returns HTTP 409 after an administrator exists. Login through `POST /api/v1/auth/login`; state-changing Session requests must send the returned CSRF token as `X-CSRF-Token`.
 
+An authenticated administrator can change the password from **Settings → Current session → 修改密码**. A successful change revokes every existing browser Session. If the password is forgotten, run the interactive reset locally on the server:
+
+```powershell
+docker compose exec backend python -m app.cli reset-admin-password --username admin
+```
+
+The command prompts twice without echoing the password, revokes all Sessions, and writes a password-reset audit entry without storing the password or hash in audit data. It requires direct access to the application host; there is intentionally no email or security-question recovery flow.
+
 ## Local backend
 
 ```powershell

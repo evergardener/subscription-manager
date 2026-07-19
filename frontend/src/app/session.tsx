@@ -49,6 +49,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       await logout();
+    } catch (reason) {
+      if (!(reason instanceof ApiError && reason.status === 401)) throw reason;
     } finally {
       setCsrfToken(null);
       setSession(null);

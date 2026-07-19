@@ -234,6 +234,7 @@ async def test_openapi_exposes_p1_to_p3_contracts(client: AsyncClient) -> None:
     paths = response.json()["paths"]
     required = {
         "/api/v1/auth/login",
+        "/api/v1/auth/change-password",
         "/api/v1/subscriptions",
         "/api/v1/subscriptions/{subscription_id}/payments",
         "/api/v1/events/upcoming",

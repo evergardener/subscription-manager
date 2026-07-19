@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.security import Actor, get_actor, hash_password, new_secret, sha256, verify_password
 from app.core.config import get_settings
 from app.core.database import get_session
+from app.core.request_context import request_id_context
 from app.models.tables import ActorType, ApiToken, Session, User
+from app.services.accounts import replace_password
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 token_router = APIRouter(prefix="/api/v1/api-tokens", tags=["auth"])
@@ -18,6 +20,11 @@ token_router = APIRouter(prefix="/api/v1/api-tokens", tags=["auth"])
 class Credentials(BaseModel):
     username: str = Field(min_length=1, max_length=100)
     password: str = Field(min_length=12, max_length=500)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=500)
+    new_password: str = Field(min_length=12, max_length=500)
 
 
 class TokenCreate(BaseModel):
@@ -119,6 +126,33 @@ async def logout(
         if record:
             record.revoked_at = datetime.now(UTC)
             await session.commit()
+    response.delete_cookie("hermes_session")
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response
+
+
+@router.post("/change-password", status_code=204)
+async def change_password(
+    payload: PasswordChange,
+    response: Response,
+    actor: Actor = Depends(get_actor),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    if actor.session_id is None:
+        raise HTTPException(status_code=401, detail="browser session required")
+    user = await session.get(User, uuid.UUID(actor.actor_id), with_for_update=True)
+    if user is None or not verify_password(user.password_hash, payload.current_password):
+        raise HTTPException(status_code=401, detail="current password is incorrect")
+    if verify_password(user.password_hash, payload.new_password):
+        raise HTTPException(status_code=422, detail="new password must be different")
+    await replace_password(
+        session,
+        user,
+        payload.new_password,
+        actor,
+        request_id_context.get() or "unknown",
+        "password_change",
+    )
     response.delete_cookie("hermes_session")
     response.status_code = status.HTTP_204_NO_CONTENT
     return response

@@ -19,6 +19,13 @@ export function logout() {
   return apiRequest<void>("/api/v1/auth/logout", { method: "POST" });
 }
 
+export function changePassword(current_password: string, new_password: string) {
+  return apiRequest<void>("/api/v1/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password, new_password }),
+  });
+}
+
 export function listApiTokens(signal?: AbortSignal) {
   return apiRequest<ApiTokenRecord[]>("/api/v1/api-tokens", { signal });
 }

@@ -105,6 +105,22 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   const dimensions = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);
 
+  if (testInfo.project.name === "mobile-360") {
+    const changedPassword = "p4-validation-password-changed";
+    await page.getByRole("link", { name: "设置", exact: true }).click();
+    await page.getByRole("button", { name: "修改密码", exact: true }).click();
+    const passwordDialog = page.getByRole("dialog", { name: "修改密码" });
+    await passwordDialog.getByLabel("当前密码").fill(password);
+    await passwordDialog.getByLabel("新密码", { exact: true }).fill(changedPassword);
+    await passwordDialog.getByLabel("再次输入新密码").fill(changedPassword);
+    await passwordDialog.getByRole("button", { name: "修改并退出全部设备" }).click();
+    await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
+    await page.getByLabel("用户名").fill(username);
+    await page.getByLabel("密码").fill(changedPassword);
+    await page.getByRole("button", { name: "登录", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "今天，一切按计划。" })).toBeVisible();
+  }
+
   await page.getByRole("button", { name: "退出登录" }).click();
   await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
   const cachedResponses = await page.evaluate(
