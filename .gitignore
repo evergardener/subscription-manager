@@ -17,3 +17,6 @@ frontend/test-results/
 .idea/
 .vscode/
 *.log
+backups/
+*.dump
+*.dump.sha256

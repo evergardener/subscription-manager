@@ -22,8 +22,13 @@ Status: In progress
 - Backend pytest: 31 passed, including security headers on success/error, structured throttling, health exclusion, account recovery, authentication, and actor boundaries.
 - Isolated Compose Playwright: desktop and 360 px workflows passed; both static and proxied API headers were asserted from the running Nginx container.
 
+## Completed: backup and restore
+
+- Custom-format PostgreSQL backups include SHA-256 sidecars and a default seven-day retention policy.
+- A fully isolated gate seeds data, creates a backup, verifies its hash, restores into an empty PostgreSQL volume, runs migrations, starts Backend, requires ready status, verifies required tables/Alembic revision, and performs the core subscription query.
+- The gate passed against the current local database (3 subscriptions) and against an isolated seeded source; validation volumes and temporary dumps were removed afterward.
+
 ## Remaining P6 work
 
-- PostgreSQL backup creation and actual restore into an empty database.
 - Traefik and systemd examples plus long-running operations guide.
 - 10,000-subscription performance checks and remaining release-candidate evidence.

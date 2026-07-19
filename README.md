@@ -134,6 +134,14 @@ For the P5 Hermes API and actor boundary, run:
 
 The Hermes Skill is in `hermes/`. Runtime configuration uses `HERMES_SUBSCRIPTION_API_URL` and `HERMES_SUBSCRIPTION_API_TOKEN`; never commit the token. See [P5 verification record](docs/P5_VERIFICATION.md).
 
+For the destructive-safety-scoped backup/restore gate, run:
+
+```powershell
+./scripts/verify-backup-restore.ps1
+```
+
+Production backup and disaster-recovery steps are in the [backup and restore runbook](docs/BACKUP_RESTORE.md). A dump is not considered valid until the empty-database verifier passes.
+
 ## Development workflow
 
 - Use the Docker Linux Engine installed on the active development host for integration and runtime validation.

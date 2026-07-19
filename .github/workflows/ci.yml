@@ -94,3 +94,11 @@ jobs:
       - name: Run isolated browser acceptance suite
         shell: pwsh
         run: ./scripts/verify-e2e.ps1
+
+  backup-restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify backup and empty-database restore
+        shell: pwsh
+        run: ./scripts/verify-backup-restore.ps1
