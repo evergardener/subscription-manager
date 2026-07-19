@@ -20,3 +20,13 @@ User: Cancel Claude Max.
 
 Explain that Hermes cannot cancel on the vendor website. Offer to record a planned cancellation in Subscription Manager and ask for the service expiry date. Never claim the external service is cancelled.
 After the user supplies the date, fetch the latest subscription version, repeat the target status, expiry date, reason, and local-only effect, then call `subscription_transition --confirm` only after explicit confirmation.
+
+## Reminder rule
+
+User: Remind me five days and one day before Claude Max renews.
+
+Resolve the subscription, read its current rules, and repeat both offsets. After explicit confirmation, call `reminder_rules_set --confirm` with `channel=external`. Explain that Subscription Manager schedules and deduplicates the reminders while Hermes performs final delivery.
+
+## Scheduled due reminder
+
+A recurring Hermes job calls `reminders_claim`. For each result, notify the user using the configured Hermes channel, then call `reminder_ack`. If delivery fails, call `reminder_fail` with a sanitized operational error. This machine workflow does not ask the user for confirmation because it executes a previously confirmed reminder rule.

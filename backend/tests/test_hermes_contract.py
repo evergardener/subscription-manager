@@ -9,6 +9,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 SCRIPT = Path(__file__).parents[2] / "hermes" / "scripts" / "call_tool.py"
+TOOLS = Path(__file__).parents[2] / "hermes" / "tools.json"
 
 
 def run_tool(*arguments: str) -> subprocess.CompletedProcess[str]:
@@ -52,6 +53,33 @@ def test_tool_runner_requires_confirmation_and_complete_arguments() -> None:
     assert json.loads(missing_expiry.stdout)["error"] == (
         "service_expiry_date is required for pending_cancel"
     )
+
+    reminder_write = run_tool(
+        "reminder_rules_set",
+        "--arguments",
+        '{"subscription_id":"00000000-0000-0000-0000-000000000001","rules":[]}',
+    )
+    assert reminder_write.returncode == 2
+    assert json.loads(reminder_write.stdout)["error"] == (
+        "explicit confirmation is required for this write"
+    )
+
+
+def test_tool_schema_covers_hermes_first_routine_operations() -> None:
+    names = {
+        item["function"]["name"]
+        for item in json.loads(TOOLS.read_text(encoding="utf-8"))["tools"]
+    }
+    assert {
+        "subscription_restore",
+        "payment_list",
+        "reminder_rules_get",
+        "reminder_rules_set",
+        "reminders_claim",
+        "reminder_ack",
+        "reminder_fail",
+        "audit_recent",
+    } <= names
 
 
 async def test_hermes_token_real_api_actor_scopes_and_header_spoofing(

@@ -17,6 +17,8 @@ CONFIRMATION_REQUIRED = {
     "subscription_update",
     "subscription_transition",
     "subscription_archive",
+    "subscription_restore",
+    "reminder_rules_set",
     "payment_record",
 }
 ALLOWED_ARGUMENTS = {
@@ -34,6 +36,11 @@ ALLOWED_ARGUMENTS = {
         "expected_version",
         "name",
         "vendor",
+        "category_id",
+        "website",
+        "logo_url",
+        "description",
+        "payment_method_description",
         "billing_plan",
         "service_dates",
     },
@@ -45,6 +52,8 @@ ALLOWED_ARGUMENTS = {
         "service_expiry_date",
     },
     "subscription_archive": {"subscription_id"},
+    "subscription_restore": {"subscription_id"},
+    "payment_list": {"subscription_id"},
     "payment_record": {
         "subscription_id",
         "amount",
@@ -57,6 +66,12 @@ ALLOWED_ARGUMENTS = {
     },
     "upcoming_events": {"days", "event_types"},
     "analytics_summary": {"currencies"},
+    "reminder_rules_get": {"subscription_id"},
+    "reminder_rules_set": {"subscription_id", "rules"},
+    "reminders_claim": {"limit"},
+    "reminder_ack": {"delivery_id"},
+    "reminder_fail": {"delivery_id", "error"},
+    "audit_recent": {"page", "page_size"},
 }
 REQUIRED_ARGUMENTS = {
     "subscription_get": {"subscription_id"},
@@ -69,6 +84,8 @@ REQUIRED_ARGUMENTS = {
         "reason",
     },
     "subscription_archive": {"subscription_id"},
+    "subscription_restore": {"subscription_id"},
+    "payment_list": {"subscription_id"},
     "payment_record": {
         "subscription_id",
         "amount",
@@ -76,6 +93,10 @@ REQUIRED_ARGUMENTS = {
         "paid_at",
         "advance_schedule",
     },
+    "reminder_rules_get": {"subscription_id"},
+    "reminder_rules_set": {"subscription_id", "rules"},
+    "reminder_ack": {"delivery_id"},
+    "reminder_fail": {"delivery_id", "error"},
 }
 
 
@@ -108,6 +129,10 @@ def endpoint(
         )
     if tool == "subscription_archive":
         return "POST", f"/api/v1/subscriptions/{subscription_id}/archive", None
+    if tool == "subscription_restore":
+        return "POST", f"/api/v1/subscriptions/{subscription_id}/restore", None
+    if tool == "payment_list":
+        return "GET", f"/api/v1/subscriptions/{subscription_id}/payments", None
     if tool == "payment_record":
         return (
             "POST",
@@ -126,6 +151,27 @@ def endpoint(
             if arguments.get("currencies")
             else None,
         )
+    if tool == "reminder_rules_get":
+        return "GET", f"/api/v1/subscriptions/{subscription_id}/reminder-rules", None
+    if tool == "reminder_rules_set":
+        return (
+            "PUT",
+            f"/api/v1/subscriptions/{subscription_id}/reminder-rules",
+            arguments["rules"],
+        )
+    if tool == "reminders_claim":
+        return "POST", "/api/v1/reminders/claim", {"limit": arguments.get("limit", 20)}
+    delivery_id = arguments.pop("delivery_id", None)
+    if tool == "reminder_ack":
+        return "POST", f"/api/v1/reminders/deliveries/{delivery_id}/ack", None
+    if tool == "reminder_fail":
+        return (
+            "POST",
+            f"/api/v1/reminders/deliveries/{delivery_id}/fail",
+            {"error": arguments["error"]},
+        )
+    if tool == "audit_recent":
+        return "GET", f"/api/v1/audit-logs?{urlencode(arguments)}", None
     fail(f"unsupported tool: {tool}")
 
 
@@ -179,7 +225,7 @@ def main() -> None:
     body = body_or_filter if method not in {"GET"} else None
     client_filter = body_or_filter if method == "GET" else None
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-    if method in {"POST", "PATCH"}:
+    if method in {"POST", "PATCH", "PUT"}:
         headers["Content-Type"] = "application/json"
     if args.tool in {"subscription_create", "payment_record"}:
         headers["Idempotency-Key"] = str(uuid.uuid4())

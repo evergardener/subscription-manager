@@ -1,6 +1,6 @@
 ---
 name: hermes
-description: Query and safely manage subscriptions through the Subscription Manager REST API. Use when users ask about subscriptions, renewal dates, upcoming billing events, spending analytics, creating or editing subscriptions, recording payments, or archiving subscriptions through the self-hosted service.
+description: Query and safely manage subscriptions and consume reliable due reminders through the Subscription Manager REST API. Use when users ask about subscriptions, renewal dates, reminder rules, payment history, spending analytics, creating or editing subscriptions, recording payments, cancellation, archive/restore, or when a scheduled Hermes job delivers claimed reminders.
 ---
 
 # Hermes Subscription Manager
@@ -25,6 +25,17 @@ Read [examples/conversations.md](examples/conversations.md) when handling creati
 4. For a write, state the exact proposed change and wait for explicit user confirmation when the operation creates a subscription, changes price/period/dates, records payment, changes cancellation state, or archives data.
 5. After confirmation, call the script with `--confirm`. Do not reuse confirmation after arguments change.
 6. Report the API result and request ID. Never claim an external subscription was cancelled; this service only records lifecycle state.
+
+## Scheduled reminder consumer
+
+The Skill is not a background scheduler by itself. Configure exactly one recurring Hermes job to run every few minutes:
+
+1. Call `reminders_claim` without user confirmation.
+2. Deliver each returned entry using a Hermes-managed notification channel. Include subscription name, event type/date, amount/currency when present, and whether it is overdue.
+3. Call `reminder_ack` only after the user-facing delivery succeeds.
+4. Call `reminder_fail` with a short sanitized error if delivery fails.
+
+Never acknowledge before delivery. A crashed consumer leaves a lease that Subscription Manager can recover. Do not run concurrent loops with the same actor unless the deployment intentionally supports them.
 
 Example invocation:
 
