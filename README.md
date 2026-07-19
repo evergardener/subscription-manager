@@ -144,6 +144,12 @@ Production backup and disaster-recovery steps are in the [backup and restore run
 
 Production Traefik, systemd, bundled/external PostgreSQL, upgrades, rollback, logging, Token rotation, and notification recovery are covered by the [operations runbook](docs/OPERATIONS.md).
 
+Run the isolated 10,000-subscription P95 gate with:
+
+```powershell
+./scripts/verify-performance.ps1 -PythonPath ./backend/.venv/Scripts/python.exe
+```
+
 ## Development workflow
 
 - Use the Docker Linux Engine installed on the active development host for integration and runtime validation.

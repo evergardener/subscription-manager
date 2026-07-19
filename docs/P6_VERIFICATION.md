@@ -28,9 +28,22 @@ Status: In progress
 - A fully isolated gate seeds data, creates a backup, verifies its hash, restores into an empty PostgreSQL volume, runs migrations, starts Backend, requires ready status, verifies required tables/Alembic revision, and performs the core subscription query.
 - The gate passed against the current local database (3 subscriptions) and against an isolated seeded source; validation volumes and temporary dumps were removed afterward.
 
+## Completed: 10,000-subscription performance gate
+
+The isolated PostgreSQL gate seeded 10,000 subscriptions, 10,000 current plans, and 10,000 planned billing events, then measured 20 HTTP samples after three warmups with a real scoped Token:
+
+| API | P95 | Limit | Response size |
+| --- | ---: | ---: | ---: |
+| Subscription list | 49.16 ms | 500 ms | 82,051 bytes |
+| Subscription search | 77.34 ms | 500 ms | 867 bytes |
+| Analytics summary | 64.09 ms | 500 ms | 8,210 bytes |
+| Upcoming events, 30 days | 472.76 ms | 1,000 ms | 4,095,501 bytes |
+
+The test database volume was removed. CI runs the same threshold gate.
+
 ## Remaining P6 work
 
-- 10,000-subscription performance checks and remaining release-candidate evidence.
+- Complete browser/viewport, cancellation-state, scoped-Token, migration-upgrade, and release-candidate evidence.
 
 ## Completed: production operations
 
