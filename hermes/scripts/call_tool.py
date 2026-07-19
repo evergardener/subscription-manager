@@ -15,6 +15,7 @@ from urllib.request import Request, urlopen
 CONFIRMATION_REQUIRED = {
     "subscription_create",
     "subscription_update",
+    "subscription_transition",
     "subscription_archive",
     "payment_record",
 }
@@ -36,6 +37,13 @@ ALLOWED_ARGUMENTS = {
         "billing_plan",
         "service_dates",
     },
+    "subscription_transition": {
+        "subscription_id",
+        "expected_version",
+        "target_status",
+        "reason",
+        "service_expiry_date",
+    },
     "subscription_archive": {"subscription_id"},
     "payment_record": {
         "subscription_id",
@@ -54,6 +62,12 @@ REQUIRED_ARGUMENTS = {
     "subscription_get": {"subscription_id"},
     "subscription_create": {"name", "status", "billing_plan"},
     "subscription_update": {"subscription_id", "expected_version"},
+    "subscription_transition": {
+        "subscription_id",
+        "expected_version",
+        "target_status",
+        "reason",
+    },
     "subscription_archive": {"subscription_id"},
     "payment_record": {
         "subscription_id",
@@ -70,7 +84,9 @@ def fail(message: str, code: int = 2) -> None:
     raise SystemExit(code)
 
 
-def endpoint(tool: str, arguments: dict[str, Any]) -> tuple[str, str, dict[str, Any] | None]:
+def endpoint(
+    tool: str, arguments: dict[str, Any]
+) -> tuple[str, str, dict[str, Any] | None]:
     subscription_id = arguments.pop("subscription_id", None)
     if tool == "subscription_search":
         return "GET", f"/api/v1/subscriptions?{urlencode(arguments)}", None
@@ -80,6 +96,16 @@ def endpoint(tool: str, arguments: dict[str, Any]) -> tuple[str, str, dict[str, 
         return "POST", "/api/v1/subscriptions", arguments
     if tool == "subscription_update":
         return "PATCH", f"/api/v1/subscriptions/{subscription_id}", arguments
+    if tool == "subscription_transition":
+        if arguments.get("target_status") == "pending_cancel" and not arguments.get(
+            "service_expiry_date"
+        ):
+            fail("service_expiry_date is required for pending_cancel")
+        return (
+            "POST",
+            f"/api/v1/subscriptions/{subscription_id}/status-transitions",
+            arguments,
+        )
     if tool == "subscription_archive":
         return "POST", f"/api/v1/subscriptions/{subscription_id}/archive", None
     if tool == "payment_record":
@@ -96,7 +122,9 @@ def endpoint(tool: str, arguments: dict[str, Any]) -> tuple[str, str, dict[str, 
         return (
             "GET",
             "/api/v1/analytics/summary",
-            {"currencies": arguments.get("currencies")} if arguments.get("currencies") else None,
+            {"currencies": arguments.get("currencies")}
+            if arguments.get("currencies")
+            else None,
         )
     fail(f"unsupported tool: {tool}")
 
@@ -111,8 +139,12 @@ def filter_result(tool: str, result: Any, client_filter: dict[str, Any] | None) 
         allowed = set(client_filter["currencies"])
         return {
             **result,
-            "expected": {k: v for k, v in result.get("expected", {}).items() if k in allowed},
-            "actual": {k: v for k, v in result.get("actual", {}).items() if k in allowed},
+            "expected": {
+                k: v for k, v in result.get("expected", {}).items() if k in allowed
+            },
+            "actual": {
+                k: v for k, v in result.get("actual", {}).items() if k in allowed
+            },
         }
     return result
 
@@ -140,7 +172,9 @@ def main() -> None:
     base_url = os.getenv("HERMES_SUBSCRIPTION_API_URL", "").rstrip("/")
     token = os.getenv("HERMES_SUBSCRIPTION_API_TOKEN", "")
     if not base_url or not token:
-        fail("HERMES_SUBSCRIPTION_API_URL and HERMES_SUBSCRIPTION_API_TOKEN are required")
+        fail(
+            "HERMES_SUBSCRIPTION_API_URL and HERMES_SUBSCRIPTION_API_TOKEN are required"
+        )
     method, path, body_or_filter = endpoint(args.tool, dict(arguments))
     body = body_or_filter if method not in {"GET"} else None
     client_filter = body_or_filter if method == "GET" else None

@@ -41,6 +41,17 @@ def test_tool_runner_requires_confirmation_and_complete_arguments() -> None:
     assert incomplete.returncode == 2
     assert "missing required arguments" in json.loads(incomplete.stdout)["error"]
 
+    missing_expiry = run_tool(
+        "subscription_transition",
+        "--arguments",
+        '{"subscription_id":"00000000-0000-0000-0000-000000000001","expected_version":1,"target_status":"pending_cancel","reason":"requested"}',
+        "--confirm",
+    )
+    assert missing_expiry.returncode == 2
+    assert json.loads(missing_expiry.stdout)["error"] == (
+        "service_expiry_date is required for pending_cancel"
+    )
+
 
 async def test_hermes_token_real_api_actor_scopes_and_header_spoofing(
     client: AsyncClient, db_session: AsyncSession
@@ -134,6 +145,19 @@ async def test_hermes_token_real_api_actor_scopes_and_header_spoofing(
     advanced = await client.get(f"/api/v1/subscriptions/{subscription_id}", headers=bearer)
     assert advanced.json()["billing_plan"]["next_billing_date"] != "2026-08-19"
 
+    transition = await client.post(
+        f"/api/v1/subscriptions/{subscription_id}/status-transitions",
+        headers=bearer,
+        json={
+            "target_status": "pending_cancel",
+            "reason": "Hermes confirmed cancellation plan",
+            "service_expiry_date": "2026-09-19",
+            "expected_version": advanced.json()["version"],
+        },
+    )
+    assert transition.status_code == 200
+    assert transition.json()["status"] == "pending_cancel"
+
     audit = await client.get("/api/v1/audit-logs", headers=bearer)
     create_entry = next(item for item in audit.json()["items"] if item["action"] == "create")
     assert create_entry["actor_type"] == "hermes"
@@ -143,3 +167,8 @@ async def test_hermes_token_real_api_actor_scopes_and_header_spoofing(
     )
     assert payment_entry["actor_type"] == "hermes"
     assert payment_entry["actor_id"] == "hermes-p5"
+    transition_entry = next(
+        item for item in audit.json()["items"] if item["action"] == "status_transition"
+    )
+    assert transition_entry["actor_type"] == "hermes"
+    assert transition_entry["actor_id"] == "hermes-p5"

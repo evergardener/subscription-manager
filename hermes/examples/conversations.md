@@ -19,3 +19,4 @@ Search, get details, and list upcoming events. If exactly one current planned bi
 User: Cancel Claude Max.
 
 Explain that Hermes cannot cancel on the vendor website. Offer to record a planned cancellation in Subscription Manager and ask for the service expiry date. Never claim the external service is cancelled.
+After the user supplies the date, fetch the latest subscription version, repeat the target status, expiry date, reason, and local-only effect, then call `subscription_transition --confirm` only after explicit confirmation.
