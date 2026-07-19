@@ -16,6 +16,7 @@
 - P4 已实现登录、Dashboard、Subscriptions、Detail、Upcoming Events、Analytics、Settings、Token 管理与离线只读 PWA；桌面端和 360 px 端到端验收均通过，证据见 [P4_VERIFICATION.md](./P4_VERIFICATION.md)。
 - P5 Hermes Skill、Tool schema、安全调用器、确认流程和真实 API actor 验证已完成；证据见 [P5_VERIFICATION.md](./P5_VERIFICATION.md)。
 - P6 Hardening 已完成并关闭：备份恢复、生产部署、运行手册、安全边界、性能门槛、完整浏览器 E2E、迁移与发布候选复验均有证据。
+- P6.1 生产适配重构已确认：移除 ntfy/Traefik 耦合，建立 Hermes-first Reminder Outbox、完整日常 Tool 能力和通用反向代理边界；设计见 [HERMES_FIRST_ARCHITECTURE.md](./HERMES_FIRST_ARCHITECTURE.md)。
 - 每个已验证变更后自动创建 Git 提交；仓库约定见根目录 [AGENTS.md](../AGENTS.md)。
 
 ## 2. 架构理解
