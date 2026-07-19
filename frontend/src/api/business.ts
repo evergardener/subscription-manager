@@ -116,7 +116,7 @@ export function getReminderRules(id: string, signal?: AbortSignal) {
 export function saveReminderRules(id: string, offsets: number[]) {
   return apiRequest<ReminderRule[]>(`/api/v1/subscriptions/${id}/reminder-rules`, {
     method: "PUT",
-    body: JSON.stringify(offsets.map((offset_days) => ({ event_type: "billing", offset_days, channel: "ntfy", enabled: true }))),
+    body: JSON.stringify(offsets.map((offset_days) => ({ event_type: "billing", offset_days, channel: "external", enabled: true }))),
   });
 }
 

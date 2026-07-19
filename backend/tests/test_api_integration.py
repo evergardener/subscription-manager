@@ -193,7 +193,7 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     rules = await client.put(
         rules_url,
         headers={"X-CSRF-Token": csrf},
-        json=[{"event_type": "expiry", "offset_days": 7, "channel": "ntfy"}],
+        json=[{"event_type": "expiry", "offset_days": 7, "channel": "external"}],
     )
     assert rules.status_code == 200
     rule_id = rules.json()[0]["id"]
@@ -257,5 +257,8 @@ async def test_openapi_exposes_p1_to_p3_contracts(client: AsyncClient) -> None:
         "/api/v1/analytics/summary",
         "/api/v1/audit-logs",
         "/api/v1/reminders/scan",
+        "/api/v1/reminders/claim",
+        "/api/v1/reminders/deliveries/{delivery_id}/ack",
+        "/api/v1/reminders/deliveries/{delivery_id}/fail",
     }
     assert required <= paths.keys()

@@ -42,6 +42,7 @@ class TokenCreate(BaseModel):
             "payments:write",
             "analytics:read",
             "audit:read",
+            "reminders:consume",
         }
         if self.actor_type == ActorType.HERMES and not set(self.scopes) <= allowed:
             raise ValueError("Hermes tokens contain an unsupported or privileged scope")

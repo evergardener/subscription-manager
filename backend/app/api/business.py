@@ -144,7 +144,7 @@ class NamePatch(BaseModel):
 class ReminderRuleInput(BaseModel):
     event_type: EventType
     offset_days: int = Field(ge=0, le=3650)
-    channel: Literal["ntfy"] = "ntfy"
+    channel: Literal["external"] = "external"
     enabled: bool = True
 
 

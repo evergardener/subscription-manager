@@ -19,13 +19,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     database_url: str = "postgresql+psycopg://hermes:change-me@localhost:5432/hermes"
     scheduler_heartbeat_seconds: int = Field(default=60, ge=5, le=3600)
+    reminder_scan_interval_minutes: int = Field(default=5, ge=1, le=1440)
     session_absolute_hours: int = Field(default=24 * 7, ge=1, le=24 * 30)
     session_idle_minutes: int = Field(default=60, ge=5, le=24 * 60)
     api_rate_limit_per_minute: int = Field(default=300, ge=10, le=10000)
     login_rate_limit_per_minute: int = Field(default=10, ge=2, le=1000)
     cookie_secure: bool = False
-    ntfy_base_url: str = "https://ntfy.sh"
-    ntfy_topic: str = "replace-me"
+    notification_mode: Literal["external", "disabled"] = "external"
     reminder_scan_days: int = Field(default=30, ge=1, le=366)
     reminder_grace_days: int = Field(default=3, ge=0, le=30)
     reminder_max_attempts: int = Field(default=5, ge=1, le=20)

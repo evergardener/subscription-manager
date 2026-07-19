@@ -9,7 +9,7 @@ from app.core.config import get_settings
 from app.core.database import dispose_engine, get_session_factory
 from app.core.event_loop import configure_windows_event_loop
 from app.core.logging import configure_logging
-from app.services.reminders import scan_and_deliver
+from app.services.reminders import maintain_events_and_outbox
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +18,10 @@ async def heartbeat() -> None:
     logger.info("scheduler_heartbeat")
 
 
-async def reminder_scan() -> None:
+async def maintenance_scan() -> None:
     settings = get_settings()
-    if settings.ntfy_topic == "replace-me":
-        logger.warning("reminder_scan_skipped ntfy_topic_not_configured")
-        return
-    result = await scan_and_deliver(get_session_factory(), settings)
-    logger.info("reminder_scan_completed result=%s", result)
+    result = await maintain_events_and_outbox(get_session_factory(), settings)
+    logger.info("event_maintenance_completed result=%s", result)
 
 
 def build_scheduler() -> AsyncIOScheduler:
@@ -40,10 +37,10 @@ def build_scheduler() -> AsyncIOScheduler:
         replace_existing=True,
     )
     scheduler.add_job(
-        reminder_scan,
+        maintenance_scan,
         trigger="interval",
-        minutes=5,
-        id="reminder-scan",
+        minutes=settings.reminder_scan_interval_minutes,
+        id="event-maintenance",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

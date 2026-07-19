@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 from httpx import AsyncClient
@@ -87,6 +88,7 @@ async def test_hermes_token_real_api_actor_scopes_and_header_spoofing(
                 "payments:write",
                 "analytics:read",
                 "audit:read",
+                "reminders:consume",
             ],
         },
     )
@@ -129,6 +131,35 @@ async def test_hermes_token_real_api_actor_scopes_and_header_spoofing(
         for item in events.json()
         if item["subscription_id"] == subscription_id and item["event_type"] == "billing"
     )
+    event_date = date.fromisoformat(billing_event["event_date"])
+    reminder_rule = await client.put(
+        f"/api/v1/subscriptions/{subscription_id}/reminder-rules",
+        headers=bearer,
+        json=[
+            {
+                "event_type": "billing",
+                "offset_days": (event_date - date.today()).days + 1,
+                "channel": "external",
+            }
+        ],
+    )
+    assert reminder_rule.status_code == 200
+    scan = await client.post("/api/v1/reminders/scan", headers={"X-CSRF-Token": csrf})
+    assert scan.status_code == 200
+    claimed = await client.post("/api/v1/reminders/claim", headers=bearer, json={"limit": 10})
+    assert claimed.status_code == 200
+    assert len(claimed.json()) == 1
+    assert claimed.json()[0]["subscription_id"] == subscription_id
+    delivery_id = claimed.json()[0]["id"]
+    acknowledged = await client.post(
+        f"/api/v1/reminders/deliveries/{delivery_id}/ack", headers=bearer
+    )
+    assert acknowledged.status_code == 200
+    assert acknowledged.json()["status"] == "sent"
+    assert (
+        await client.post("/api/v1/reminders/claim", headers=bearer, json={"limit": 10})
+    ).json() == []
+
     payment = await client.post(
         f"/api/v1/subscriptions/{subscription_id}/payments",
         headers={**bearer, "Idempotency-Key": "p5-hermes-payment"},
@@ -172,3 +203,6 @@ async def test_hermes_token_real_api_actor_scopes_and_header_spoofing(
     )
     assert transition_entry["actor_type"] == "hermes"
     assert transition_entry["actor_id"] == "hermes-p5"
+    reminder_entry = next(item for item in audit.json()["items"] if item["action"] == "acknowledge")
+    assert reminder_entry["actor_type"] == "hermes"
+    assert reminder_entry["actor_id"] == "hermes-p5"

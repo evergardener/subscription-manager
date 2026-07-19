@@ -77,7 +77,7 @@ function PaymentDialog({ currency, amount, event, autoRenew, pending, error, onC
 }
 
 function RulesDialog({ initial, pending, error, onClose, onSubmit }: { initial: number[]; pending: boolean; error: unknown; onClose: () => void; onSubmit: (value: number[]) => void }) {
-  return <DialogFrame title="续费提醒" pending={pending} error={error} onClose={onClose} submitLabel="保存提醒" onSubmit={(data) => onSubmit([...new Set([field(data, "first"), field(data, "second")].filter(Boolean).map(Number))])}><p className="muted">最多配置两条 ntfy 续费提醒；重复扫描不会重复投递。</p><div className="form-grid"><label>第一条（提前天数）<input name="first" type="number" min="0" max="3650" defaultValue={initial[0] ?? 5} /></label><label>第二条（提前天数）<input name="second" type="number" min="0" max="3650" defaultValue={initial[1] ?? 1} /></label></div></DialogFrame>;
+  return <DialogFrame title="续费提醒" pending={pending} error={error} onClose={onClose} submitLabel="保存提醒" onSubmit={(data) => onSubmit([...new Set([field(data, "first"), field(data, "second")].filter(Boolean).map(Number))])}><p className="muted">最多配置两条外部提醒；系统负责到期计算和去重，由 Hermes 或其他授权消费者完成通知。</p><div className="form-grid"><label>第一条（提前天数）<input name="first" type="number" min="0" max="3650" defaultValue={initial[0] ?? 5} /></label><label>第二条（提前天数）<input name="second" type="number" min="0" max="3650" defaultValue={initial[1] ?? 1} /></label></div></DialogFrame>;
 }
 
 function DatesDialog({ initial, pending, error, onClose, onSubmit }: { initial?: ServiceDates; pending: boolean; error: unknown; onClose: () => void; onSubmit: (value: ServiceDates) => void }) {

@@ -17,9 +17,9 @@ def test_event_key_is_stable_and_complete() -> None:
         subscription_id=subscription_id,
         event_type=EventType.BILLING,
         offset_days=5,
-        channel="ntfy",
+        channel="external",
     )
-    assert event_key(event, rule) == f"{subscription_id}:billing:2026-08-21:5:ntfy"
+    assert event_key(event, rule) == f"{subscription_id}:billing:2026-08-21:5:external"
 
 
 def test_scheduled_time_uses_asia_shanghai_and_utc_storage() -> None:

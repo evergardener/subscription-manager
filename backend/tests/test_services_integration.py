@@ -20,7 +20,6 @@ from app.models.tables import (
     Subscription,
     SubscriptionStatus,
 )
-from app.notifications.ntfy import Notification, NotificationError
 from app.services.business import (
     add_audit,
     add_idempotency,
@@ -31,8 +30,9 @@ from app.services.business import (
     replace_plan,
 )
 from app.services.reminders import (
-    _deliver_one,
+    acknowledge_delivery,
     claim_deliveries,
+    fail_delivery,
     generate_deliveries,
     scheduled_at,
 )
@@ -113,18 +113,7 @@ async def test_business_services_generate_replace_audit_and_idempotency(
     assert cached == {"id": str(subscription.id), "amount": "120"}
 
 
-class SuccessfulAdapter:
-    async def send(self, notification: Notification) -> None:
-        assert notification is not None
-
-
-class FailingAdapter:
-    async def send(self, notification: Notification) -> None:
-        del notification
-        raise NotificationError("simulated failure")
-
-
-async def test_reminder_services_generate_claim_send_retry_and_dead(
+async def test_reminder_services_generate_claim_ack_retry_and_dead(
     db_session: AsyncSession,
 ) -> None:
     settings = get_settings().model_copy(
@@ -145,19 +134,19 @@ async def test_reminder_services_generate_claim_send_retry_and_dead(
         subscription_id=subscription.id,
         event_type=EventType.BILLING,
         offset_days=1,
-        channel="ntfy",
+        channel="external",
     )
     db_session.add_all([event, rule])
     await db_session.commit()
     now = scheduled_at(event.event_date, rule.offset_days) + timedelta(minutes=1)
     assert await generate_deliveries(db_session, settings, now) == (1, 0)
     assert await generate_deliveries(db_session, settings, now) == (0, 0)
-    claimed = await claim_deliveries(db_session, settings, now)
+    claimed = await claim_deliveries(db_session, settings, now, ActorType.HERMES, "hermes-primary")
     assert len(claimed) == 1
-    assert (
-        await _deliver_one(db_session, claimed[0], SuccessfulAdapter(), settings, now)
-        == DeliveryStatus.SENT
-    )
+    sent = await db_session.get(ReminderDelivery, claimed[0])
+    assert sent is not None
+    acknowledge_delivery(sent, ActorType.HERMES, "hermes-primary", now)
+    assert sent.status == DeliveryStatus.SENT
 
     failed = ReminderDelivery(
         rule_id=rule.id,
@@ -165,20 +154,34 @@ async def test_reminder_services_generate_claim_send_retry_and_dead(
         scheduled_for=now - timedelta(minutes=1),
         status=DeliveryStatus.PROCESSING,
         attempt_count=1,
+        lease_expires_at=now + timedelta(minutes=1),
+        claimed_by_actor_type=ActorType.HERMES,
+        claimed_by_actor_id="hermes-primary",
     )
     db_session.add(failed)
     await db_session.commit()
-    assert (
-        await _deliver_one(db_session, failed.id, FailingAdapter(), settings, now)
-        == DeliveryStatus.FAILED
+    fail_delivery(
+        failed,
+        ActorType.HERMES,
+        "hermes-primary",
+        settings,
+        now,
+        "simulated failure",
     )
+    assert failed.status == DeliveryStatus.FAILED
     failed.status = DeliveryStatus.PROCESSING
     failed.attempt_count = 2
+    failed.lease_expires_at = now + timedelta(minutes=1)
     await db_session.commit()
-    assert (
-        await _deliver_one(db_session, failed.id, FailingAdapter(), settings, now)
-        == DeliveryStatus.DEAD
+    fail_delivery(
+        failed,
+        ActorType.HERMES,
+        "hermes-primary",
+        settings,
+        now,
+        "simulated failure",
     )
+    assert failed.status == DeliveryStatus.DEAD
     statuses = set(await db_session.scalars(select(ReminderDelivery.status)))
     assert {DeliveryStatus.SENT, DeliveryStatus.DEAD} <= statuses
 
@@ -194,7 +197,7 @@ async def test_concurrent_claimers_never_claim_the_same_delivery(
         subscription_id=subscription.id,
         event_type=EventType.BILLING,
         offset_days=0,
-        channel="ntfy",
+        channel="external",
     )
     db_session.add(rule)
     await db_session.flush()
@@ -209,7 +212,11 @@ async def test_concurrent_claimers_never_claim_the_same_delivery(
 
     factory = get_session_factory()
     async with factory() as first, factory() as second:
-        first_ids = await claim_deliveries(first, settings, datetime.now(UTC))
-        second_ids = await claim_deliveries(second, settings, datetime.now(UTC))
+        first_ids = await claim_deliveries(
+            first, settings, datetime.now(UTC), ActorType.HERMES, "first"
+        )
+        second_ids = await claim_deliveries(
+            second, settings, datetime.now(UTC), ActorType.HERMES, "second"
+        )
     assert first_ids == [delivery.id]
     assert second_ids == []

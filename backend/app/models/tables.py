@@ -263,6 +263,10 @@ class ReminderDelivery(TimestampVersionMixin, Base):
     error: Mapped[str | None] = mapped_column(Text)
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    claimed_by_actor_type: Mapped[ActorType | None] = mapped_column(
+        Enum(ActorType, name="actor_type", values_callable=enum_values)
+    )
+    claimed_by_actor_id: Mapped[str | None] = mapped_column(String(200))
 
 
 class SubscriptionTag(Base):
