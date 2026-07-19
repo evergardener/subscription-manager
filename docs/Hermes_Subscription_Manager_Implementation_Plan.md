@@ -16,7 +16,8 @@
 - P4 已实现登录、Dashboard、Subscriptions、Detail、Upcoming Events、Analytics、Settings、Token 管理与离线只读 PWA；桌面端和 360 px 端到端验收均通过，证据见 [P4_VERIFICATION.md](./P4_VERIFICATION.md)。
 - P5 Hermes Skill、Tool schema、安全调用器、确认流程和真实 API actor 验证已完成；证据见 [P5_VERIFICATION.md](./P5_VERIFICATION.md)。
 - P6 Hardening 已完成并关闭：备份恢复、生产部署、运行手册、安全边界、性能门槛、完整浏览器 E2E、迁移与发布候选复验均有证据。
-- P6.1 生产适配重构已实现并通过隔离验证：移除 ntfy/Traefik 耦合，建立 Hermes-first Reminder Outbox、完整日常 Tool 能力和通用反向代理边界；设计见 [HERMES_FIRST_ARCHITECTURE.md](./HERMES_FIRST_ARCHITECTURE.md)，证据见 [P6_1_VERIFICATION.md](./P6_1_VERIFICATION.md)。现有本地实例待安全备份后升级。
+- P6.1 生产适配重构已实现并通过隔离及现有实例升级验证：移除 ntfy/Traefik 耦合，建立 Hermes-first Reminder Outbox、完整日常 Tool 能力和通用反向代理边界；设计见 [HERMES_FIRST_ARCHITECTURE.md](./HERMES_FIRST_ARCHITECTURE.md)，证据见 [P6_1_VERIFICATION.md](./P6_1_VERIFICATION.md)。
+- Hermes 同机生产交付包已完成：根目录提供单一交接入口，包含 Linux 构建部署、Skill/Tools 安装、唯一 Reminder Consumer、用户说明、systemd、首次备份及 Bash/PowerShell 空库恢复验证流程。
 - 每个已验证变更后自动创建 Git 提交；仓库约定见根目录 [AGENTS.md](../AGENTS.md)。
 
 ## 2. 架构理解

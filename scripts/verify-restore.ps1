@@ -6,6 +6,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if ($ProjectName -notmatch 'restore-validation$') { throw 'The project name must end in restore-validation.' }
+$existingContainers = & docker ps -aq --filter "label=com.docker.compose.project=$ProjectName"
+$existingVolumes = & docker volume ls -q --filter "label=com.docker.compose.project=$ProjectName"
+$existingNetworks = & docker network ls -q --filter "label=com.docker.compose.project=$ProjectName"
+if ($existingContainers -or $existingVolumes -or $existingNetworks) {
+    throw "Refusing to reuse existing Docker resources for $ProjectName."
+}
 $backup = (Resolve-Path -LiteralPath $BackupPath).Path
 $hashPath = "$backup.sha256"
 if (-not (Test-Path -LiteralPath $hashPath)) { throw 'The SHA-256 sidecar is required.' }

@@ -11,8 +11,10 @@ Use only the REST API through `scripts/call_tool.py`. Never access PostgreSQL or
 
 Require these environment variables:
 
-- `HERMES_SUBSCRIPTION_API_URL`: service origin, for example `http://localhost:8000`.
-- `HERMES_SUBSCRIPTION_API_TOKEN`: dedicated token with `actor_type=hermes` and only the scopes needed. Never print or persist it.
+- `HERMES_SUBSCRIPTION_API_URL`: public same-origin HTTPS endpoint, for example `https://subscriptions.example.com`; omit `/api/v1` and do not target the Backend container directly.
+- `HERMES_SUBSCRIPTION_API_TOKEN`: dedicated token with `actor_type=hermes` and only the scopes needed. Store it only in Hermes' protected secret configuration; never print, commit, or include it in task text.
+
+For a new host deployment or Skill registration, read [INSTALL.md](INSTALL.md) first.
 
 Read [references/api.md](references/api.md) when constructing tool arguments or interpreting a response. Read [references/errors.md](references/errors.md) after any non-2xx response.
 Read [examples/conversations.md](examples/conversations.md) when handling creation, payment, or cancellation language.

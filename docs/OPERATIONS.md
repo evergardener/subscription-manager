@@ -1,5 +1,7 @@
 # Production Operations Runbook
 
+For a new deployment on the same host as Hermes, start with [HERMES_DEPLOYMENT_HANDOFF.md](../HERMES_DEPLOYMENT_HANDOFF.md) and [HERMES_HOST_DEPLOYMENT.md](HERMES_HOST_DEPLOYMENT.md). This runbook covers ongoing operations after installation.
+
 ## Deployment boundary
 
 Use `deploy/compose.production.yml` for bundled PostgreSQL or `deploy/compose.external-db.yml` with a PostgreSQL 16+ `DATABASE_URL`. The application stack contains only its database (when bundled), migration job, Backend, Scheduler, and Frontend. It does not install or configure a reverse proxy, DNS, certificates, ntfy, or provider-specific notification services.

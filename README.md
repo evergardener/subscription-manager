@@ -1,6 +1,8 @@
 # Hermes Subscription Manager
 
-Self-hosted subscription and digital-service lifecycle manager. This repository is being implemented from the approved v1.1 development specification.
+Self-hosted subscription and digital-service lifecycle manager implemented from the approved v1.1 development specification.
+
+将仓库交给 Hermes 所在主机自动构建、部署和安装时，从 [Hermes 主机部署交接入口](HERMES_DEPLOYMENT_HANDOFF.md) 开始。部署完成后的日常操作见 [用户使用说明](docs/USER_GUIDE.md)。
 
 ## Current status
 
@@ -183,6 +185,8 @@ Run the isolated 10,000-subscription P95 gate with:
 - [P6.1 Hermes-first verification record](docs/P6_1_VERIFICATION.md)
 - [Configuration reference](docs/CONFIGURATION.md)
 - [Hermes-first architecture](docs/HERMES_FIRST_ARCHITECTURE.md)
+- [Hermes host deployment guide](docs/HERMES_HOST_DEPLOYMENT.md)
+- [User guide](docs/USER_GUIDE.md)
 - [Development host migration handoff](docs/DEVELOPMENT_HOST_HANDOFF.md)
 
 Any behavior that deviates from the approved specification must update the Markdown decision record before code changes are accepted.

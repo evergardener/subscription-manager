@@ -4,6 +4,12 @@
 
 Run on the application host while PostgreSQL is healthy:
 
+```bash
+./scripts/backup-postgres.sh
+```
+
+Windows/PowerShell equivalent:
+
 ```powershell
 ./scripts/backup-postgres.ps1 -ProjectName subscription-manager -RetentionDays 7
 ```
@@ -16,11 +22,17 @@ Schedule this command daily. Keep at least one encrypted copy outside the applic
 
 Test a dump in a disposable empty database:
 
+```bash
+./scripts/verify-restore.sh ./backups/subscription-manager-YYYYMMDDTHHMMSSZ.dump
+```
+
+Windows/PowerShell equivalent:
+
 ```powershell
 ./scripts/verify-restore.ps1 -BackupPath ./backups/subscription-manager-YYYYMMDDTHHMMSSZ.dump
 ```
 
-The verifier requires the SHA-256 sidecar, restores only into an isolated Compose project whose name ends in `restore-validation`, runs migrations, starts Backend, checks `/health/ready`, verifies required tables and the Alembic revision, and performs a core subscription query. Its temporary database volume is removed afterward.
+The verifier requires the SHA-256 sidecar, refuses to reuse pre-existing Docker resources, restores only into an isolated Compose project whose name ends in `restore-validation`, runs migrations, starts Backend, checks `/health/ready`, verifies required tables and the Alembic revision, and performs a core subscription query. Its temporary database volume is removed afterward.
 
 For a real disaster recovery:
 
