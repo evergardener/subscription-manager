@@ -21,6 +21,7 @@
 4. 不输出、提交或写入普通日志：数据库密码、管理员密码、API Token、私钥或完整 `.env`。
 5. 不运行 `docker compose down --volumes`。升级已有实例前必须创建并验证备份，并保留该数据卷初始化时的数据库名和角色名。
 6. 只运行一个 Scheduler 和一个 Hermes Reminder Consumer。不得用多个同一 Token 的任务并发领取提醒。
+7. Backend 和 Frontend GHCR Package 已公开；主机应匿名拉取，不需要配置 GitHub PAT 或 GHCR 登录。
 
 ## 必读顺序
 

@@ -65,6 +65,9 @@ Production Compose pulls these images instead of building source on the server:
 - `ghcr.io/evergardener/subscription-manager-backend`
 - `ghcr.io/evergardener/subscription-manager-frontend`
 
+Both packages are public and can be pulled anonymously; production hosts do not
+need a GitHub or GHCR credential.
+
 `IMAGE_TAG=latest` follows the newest successful `main` build. Pin
 `IMAGE_TAG=sha-<40-character-commit>` for reproducible deployment and rollback.
 The images support `linux/amd64` and `linux/arm64`.

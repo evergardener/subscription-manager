@@ -1,5 +1,7 @@
 name: subscription-manager
 
+# Public multi-platform GHCR images; registry authentication is not required.
+# IMAGE_TAG defaults to the newest successful main build.
 x-backend-image: &backend-image ghcr.io/evergardener/subscription-manager-backend:${IMAGE_TAG:-latest}
 
 x-backend-environment: &backend-environment

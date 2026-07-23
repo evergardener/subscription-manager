@@ -83,7 +83,7 @@ chmod 0600 .env
 
 默认 `IMAGE_TAG=latest`，它只跟随最新成功的 `main` 构建。需要可复现部署或回滚时，使用同一提交对应的 `sha-<40 位 Git commit>` 标签。`main` 也指向最新成功的主分支构建；推送 `v*` Git 标签会额外发布 SemVer 标签。
 
-首次工作流发布后，仓库所有者必须在 GitHub 上分别进入两个 Package 的 **Package settings → Change visibility → Public** 完成一次性公开设置。公开后不可改回私有。公开镜像可匿名拉取，Hermes 主机不需要 GHCR Token；若尚未公开，下面的 `pull` 会返回权限错误。
+两个 Package 均已设置为 Public，并已使用无 Docker 凭据的客户端验证匿名读取。Hermes 主机不需要 GitHub PAT、GHCR Token 或 `docker login`；直接运行下面的 `pull` 即可。
 
 ## 4. 配置和启动
 

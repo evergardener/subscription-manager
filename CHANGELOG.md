@@ -24,6 +24,7 @@ This file records user-visible changes and deployment-relevant maintenance for H
 - Added regression coverage for archived-subscription forecasts, event visibility, event generation, reminder generation, and reminder claiming.
 - Production Compose and systemd now pull prebuilt GHCR images instead of compiling application source on the Hermes host.
 - Backend CI and the P0 gate invoke pytest through the active Python interpreter, avoiding console-script import-path differences across development hosts.
+- Production Compose and deployment documentation now explicitly identify both GHCR packages as public and require no registry credentials on the Hermes host.
 
 ### Validation
 
@@ -33,11 +34,12 @@ This file records user-visible changes and deployment-relevant maintenance for H
 - Frontend audit reported zero vulnerabilities; lint, type-check, all 9 unit tests, and the production PWA build passed.
 - The isolated Docker Compose stack rebuilt successfully, migrated to `b6d2c9e41a70`, returned 200 from Backend and Frontend health endpoints, and produced no blocking Backend, Scheduler, Frontend, or migration log errors.
 - The GHCR workflow and both image-based production Compose variants passed static validation; the native Docker builds used by the workflow also passed the isolated full-stack smoke test.
+- Anonymous manifest inspection succeeded for both `latest` images and confirmed `linux/amd64` and `linux/arm64` variants.
 
 ### Deployment notes
 
 - No database migration was added.
-- After the first successful image publication, set both new GHCR Packages to Public once in GitHub Package settings; public visibility cannot be reverted.
+- Both GHCR Packages are already Public; do not configure a GitHub PAT or GHCR login on the deployment host.
 - Pull the new deployment revision, keep `IMAGE_TAG=latest` for automatic newest-successful deployment or pin the published `sha-*` tag, then run Compose `pull` and `up -d --wait`.
 - Existing subscription and payment data require no manual conversion.
 

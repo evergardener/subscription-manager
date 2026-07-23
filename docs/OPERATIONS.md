@@ -18,7 +18,9 @@ At minimum, replace `POSTGRES_PASSWORD` for bundled PostgreSQL or `DATABASE_URL`
 
 Production pulls public multi-platform images from GHCR. Keep `IMAGE_TAG=latest`
 to follow the newest successful `main` build, or use an immutable
-`sha-<40-character-commit>` tag for a reproducible deployment.
+`sha-<40-character-commit>` tag for a reproducible deployment. Both packages
+support anonymous pulls, so do not provision a GitHub PAT or run `docker login`
+on the production host.
 
 New installations default to database and role name `subscription_manager`. Changing `POSTGRES_DB` or `POSTGRES_USER` does not rename objects inside an existing PostgreSQL volume; preserve the values used when that volume was initialized unless performing a separately planned database migration.
 

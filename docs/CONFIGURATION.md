@@ -28,7 +28,8 @@ The project remains a Hermes component, but generic infrastructure identifiers u
 
 Production Compose pulls `linux/amd64` or `linux/arm64` images from GHCR and does
 not build application source. Local `compose.yml` remains build-based for
-development.
+development. Both GHCR packages are public; no registry credential is required
+on production hosts.
 
 ## Published endpoints and browser security
 
