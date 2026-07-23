@@ -32,6 +32,16 @@ def validate_compose() -> None:
     assert frontend["depends_on"]["backend"]["condition"] == "service_healthy"
     assert compose.get("volumes", {}).get("postgres-data") is None
 
+    for relative in ("deploy/compose.production.yml", "deploy/compose.external-db.yml"):
+        production = load_yaml(ROOT / relative)
+        production_services = production["services"]
+        for service_name in ("migrate", "backend", "scheduler", "frontend"):
+            service = production_services[service_name]
+            assert "build" not in service, f"{relative} must not build {service_name}"
+            assert str(service["image"]).startswith(
+                "ghcr.io/evergardener/subscription-manager-"
+            ), f"{relative} must pull {service_name} from GHCR"
+
 
 def validate_ci() -> None:
     workflow = load_yaml(ROOT / ".github" / "workflows" / "ci.yml")
@@ -44,6 +54,8 @@ def validate_ci() -> None:
         "e2e",
         "backup-restore",
         "performance",
+        "publish-images",
+        "publish-tags",
     }
     assert required_jobs <= set(jobs), f"CI is missing jobs: {required_jobs - set(jobs)}"
     backend_steps = "\n".join(str(step.get("run", "")) for step in jobs["backend"]["steps"])
@@ -52,6 +64,10 @@ def validate_ci() -> None:
     e2e_steps = "\n".join(str(step.get("run", "")) for step in jobs["e2e"]["steps"])
     backup_steps = "\n".join(str(step.get("run", "")) for step in jobs["backup-restore"]["steps"])
     performance_steps = "\n".join(str(step.get("run", "")) for step in jobs["performance"]["steps"])
+    publish_actions = "\n".join(
+        str(step.get("uses", "")) for step in jobs["publish-images"]["steps"]
+    )
+    promotion_steps = "\n".join(str(step) for step in jobs["publish-tags"]["steps"])
     for command in ("ruff check", "ruff format --check", "mypy", "pytest", "alembic upgrade"):
         assert command in backend_steps, f"backend CI is missing {command}"
     for command in (
@@ -67,6 +83,19 @@ def validate_ci() -> None:
     assert "./scripts/verify-e2e.ps1" in e2e_steps
     assert "./scripts/verify-backup-restore.ps1" in backup_steps
     assert "./scripts/verify-performance.ps1" in performance_steps
+    for action in (
+        "docker/login-action@",
+        "docker/metadata-action@",
+        "docker/build-push-action@",
+    ):
+        assert action in publish_actions, f"image publishing CI is missing {action}"
+    assert set(jobs["publish-images"]["needs"]) == required_jobs - {
+        "publish-images",
+        "publish-tags",
+    }
+    assert jobs["publish-tags"]["needs"] == "publish-images"
+    assert "docker buildx imagetools create" in promotion_steps
+    assert "value=latest,enable={{is_default_branch}}" in promotion_steps
 
 
 def validate_artifacts() -> None:

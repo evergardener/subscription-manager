@@ -25,7 +25,7 @@ try {
     Invoke-Step 'Backend lint' { uv run ruff check . }
     Invoke-Step 'Backend format check' { uv run ruff format --check . }
     Invoke-Step 'Backend type check' { uv run mypy app tests }
-    Invoke-Step 'Backend tests' { uv run pytest }
+    Invoke-Step 'Backend tests' { uv run python -m pytest }
     Invoke-Step 'Alembic offline SQL generation' { uv run alembic upgrade head --sql }
     Invoke-Step 'P0 static configuration validation' { uv run python ..\scripts\validate_p0.py }
 }

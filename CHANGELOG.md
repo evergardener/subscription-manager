@@ -4,6 +4,11 @@ This file records user-visible changes and deployment-relevant maintenance for H
 
 ## 2026-07-23
 
+### Added
+
+- Added a gated GitHub Actions publishing job for Backend and Frontend GHCR images on `linux/amd64` and `linux/arm64`.
+- Added immutable `sha-<full commit>`, moving `main`, moving `latest`, and SemVer image tags. `latest` updates only after every CI job succeeds on `main`.
+
 ### Fixed
 
 - Archived subscriptions no longer contribute future billing events, Upcoming Events, forecast analytics, Dashboard renewal totals, or new and claimable reminder deliveries.
@@ -17,6 +22,8 @@ This file records user-visible changes and deployment-relevant maintenance for H
 - Project documentation now records that the application is connected to Hermes and in real-world use.
 - The P0 development-host handoff is explicitly marked as a historical snapshot.
 - Added regression coverage for archived-subscription forecasts, event visibility, event generation, reminder generation, and reminder claiming.
+- Production Compose and systemd now pull prebuilt GHCR images instead of compiling application source on the Hermes host.
+- Backend CI and the P0 gate invoke pytest through the active Python interpreter, avoiding console-script import-path differences across development hosts.
 
 ### Validation
 
@@ -25,11 +32,13 @@ This file records user-visible changes and deployment-relevant maintenance for H
 - Alembic reported no metadata drift; downgrade to base and upgrade to head passed against an isolated PostgreSQL database.
 - Frontend audit reported zero vulnerabilities; lint, type-check, all 9 unit tests, and the production PWA build passed.
 - The isolated Docker Compose stack rebuilt successfully, migrated to `b6d2c9e41a70`, returned 200 from Backend and Frontend health endpoints, and produced no blocking Backend, Scheduler, Frontend, or migration log errors.
+- The GHCR workflow and both image-based production Compose variants passed static validation; the native Docker builds used by the workflow also passed the isolated full-stack smoke test.
 
 ### Deployment notes
 
 - No database migration was added.
-- Pull the new revision and rebuild the Backend, Scheduler, migration, and Frontend images so both updated lockfiles take effect.
+- After the first successful image publication, set both new GHCR Packages to Public once in GitHub Package settings; public visibility cannot be reverted.
+- Pull the new deployment revision, keep `IMAGE_TAG=latest` for automatic newest-successful deployment or pin the published `sha-*` tag, then run Compose `pull` and `up -d --wait`.
 - Existing subscription and payment data require no manual conversion.
 
 ## Earlier milestones

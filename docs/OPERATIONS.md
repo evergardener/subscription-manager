@@ -16,13 +16,18 @@ chmod 0600 .env
 
 At minimum, replace `POSTGRES_PASSWORD` for bundled PostgreSQL or `DATABASE_URL` for an external database. URL-encode reserved characters in database credentials. For external PostgreSQL, require TLS according to the provider's instructions.
 
+Production pulls public multi-platform images from GHCR. Keep `IMAGE_TAG=latest`
+to follow the newest successful `main` build, or use an immutable
+`sha-<40-character-commit>` tag for a reproducible deployment.
+
 New installations default to database and role name `subscription_manager`. Changing `POSTGRES_DB` or `POSTGRES_USER` does not rename objects inside an existing PostgreSQL volume; preserve the values used when that volume was initialized unless performing a separately planned database migration.
 
 Start bundled PostgreSQL deployment:
 
 ```bash
 docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager config --quiet
-docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager up -d --build
+docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager pull
+docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager up -d --wait
 ```
 
 For the external database, replace the Compose filename with `deploy/compose.external-db.yml`. The migration container must exit successfully before Backend starts. Require Backend and Frontend health checks to pass before bootstrap or login.
@@ -31,6 +36,7 @@ For the external database, replace the Compose filename with `deploy/compose.ext
 
 | Variable | Meaning |
 | --- | --- |
+| `IMAGE_TAG` | Shared Backend/Frontend GHCR tag. `latest` follows the newest successful `main` build; prefer immutable `sha-*` tags for controlled releases and rollback. |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Bundled PostgreSQL database, role, and secret. Only used by the bundled deployment. |
 | `DATABASE_URL` | Complete SQLAlchemy PostgreSQL URL for the external-database deployment. |
 | `SERVICE_BIND_ADDRESS`, `SERVICE_PORT` | Host address/port publishing Frontend. Keep loopback unless direct network exposure is deliberate and protected. |
@@ -97,8 +103,8 @@ The timer runs daily at approximately 02:15 and retains seven days by default. C
 
 - Health: `docker compose ... ps` and `/api/v1/health/live`, `/api/v1/health/ready` through Frontend.
 - Logs: `docker compose ... logs --since 30m backend scheduler`; correlate failures with `request_id` and audit entries.
-- Upgrade: create and verify a backup, fetch the reviewed revision, run `compose up -d --build`, and confirm migration, ready status, core UI, and Hermes API access.
-- Rollback: do not downgrade application code across a migration without a verified compatible database backup. Restore into a new database and switch `DATABASE_URL` after validation.
+- Upgrade: create and verify a backup, fetch the reviewed deployment files, select `IMAGE_TAG`, run `compose pull` and `compose up -d --wait`, then confirm migration, image digests, ready status, core UI, and Hermes API access.
+- Rollback: select the previously recorded immutable `sha-*` image tag. Do not downgrade application code across a migration without a verified compatible database backup; restore into a new database and switch `DATABASE_URL` after validation.
 - Password recovery: `docker compose ... exec backend python -m app.cli reset-admin-password --username <name>`.
 - Token rotation: create the replacement with minimum scopes, update Hermes' secret, verify it, then revoke the old Token in Settings.
 - Reminder failure: inspect Scheduler logs and Outbox audit/status, then verify the Hermes recurring task and Token scope. Keep Scheduler stopped during disaster recovery until data validation finishes.

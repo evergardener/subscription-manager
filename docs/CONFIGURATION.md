@@ -20,6 +20,16 @@ Configuration is supplied through environment variables. Copy one example to `.e
 
 The project remains a Hermes component, but generic infrastructure identifiers use `subscription-manager`/`subscription_manager` to avoid implying that the database or deployment represents all of Hermes. Python/npm package names retain their historical internal names because changing them has no deployment effect.
 
+## Container images
+
+| Variable | Default/profile | Meaning |
+| --- | --- | --- |
+| `IMAGE_TAG` | `latest`, production | Tag applied to both `ghcr.io/evergardener/subscription-manager-backend` and `ghcr.io/evergardener/subscription-manager-frontend`. `latest` and `main` follow the newest successful main-branch CI build; `sha-<40-character-commit>` is immutable and preferred for reproducible releases and rollback. |
+
+Production Compose pulls `linux/amd64` or `linux/arm64` images from GHCR and does
+not build application source. Local `compose.yml` remains build-based for
+development.
+
 ## Published endpoints and browser security
 
 | Variable | Default/profile | Meaning |

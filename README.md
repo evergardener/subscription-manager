@@ -2,7 +2,7 @@
 
 Self-hosted subscription and digital-service lifecycle manager implemented from the approved v1.1 development specification.
 
-将仓库交给 Hermes 所在主机自动构建、部署和安装时，从 [Hermes 主机部署交接入口](HERMES_DEPLOYMENT_HANDOFF.md) 开始。部署完成后的日常操作见 [用户使用说明](docs/USER_GUIDE.md)。
+将仓库交给 Hermes 所在主机部署和安装时，从 [Hermes 主机部署交接入口](HERMES_DEPLOYMENT_HANDOFF.md) 开始。生产主机直接拉取 GitHub Actions 构建的 GHCR 镜像，无需在 Hermes 主机编译应用。部署完成后的日常操作见 [用户使用说明](docs/USER_GUIDE.md)。
 
 ## Current status
 
@@ -19,6 +19,7 @@ Included:
 - Docker Compose services for PostgreSQL, migration, backend, scheduler, and frontend.
 - Session/CSRF for the Web UI and scoped API Tokens for Hermes, scheduler, and automation clients.
 - Backend and frontend lint, type-check, test, coverage, build, migration, and Compose CI jobs.
+- Multi-platform Backend and Frontend images published to GHCR only after the complete CI gate succeeds.
 
 ## Repository layout
 
@@ -38,7 +39,7 @@ subscription-manager/
 - Python 3.12 and `uv` for local backend development.
 - Node.js 22 and npm for local frontend development.
 
-## Full-stack startup
+## Local full-stack startup
 
 1. Copy `.env.example` to `.env`.
 2. Replace `POSTGRES_PASSWORD`. Keep `NOTIFICATION_MODE=external` when Hermes will deliver reminders, or use `disabled` when only event maintenance is required. Do not commit `.env`.
@@ -58,6 +59,15 @@ Endpoints:
 - Ready: <http://localhost:8000/api/v1/health/ready>
 
 Stop the stack with `docker compose down`. Add `--volumes` only when intentionally deleting the local PostgreSQL data volume.
+
+Production Compose pulls these images instead of building source on the server:
+
+- `ghcr.io/evergardener/subscription-manager-backend`
+- `ghcr.io/evergardener/subscription-manager-frontend`
+
+`IMAGE_TAG=latest` follows the newest successful `main` build. Pin
+`IMAGE_TAG=sha-<40-character-commit>` for reproducible deployment and rollback.
+The images support `linux/amd64` and `linux/arm64`.
 
 On a new empty database, create the single local administrator once:
 

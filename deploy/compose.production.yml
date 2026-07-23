@@ -1,5 +1,7 @@
 name: subscription-manager
 
+x-backend-image: &backend-image ghcr.io/evergardener/subscription-manager-backend:${IMAGE_TAG:-latest}
+
 services:
   db:
     image: postgres:16.14-alpine3.22
@@ -18,7 +20,7 @@ services:
     restart: unless-stopped
 
   migrate:
-    build: ../backend
+    image: *backend-image
     environment: &backend-environment
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-subscription_manager}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-subscription_manager}
       ENVIRONMENT: production
@@ -40,7 +42,7 @@ services:
     restart: "no"
 
   backend:
-    build: ../backend
+    image: *backend-image
     environment: *backend-environment
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -53,7 +55,7 @@ services:
     restart: unless-stopped
 
   scheduler:
-    build: ../backend
+    image: *backend-image
     environment:
       <<: *backend-environment
       SCHEDULER_HEARTBEAT_SECONDS: ${SCHEDULER_HEARTBEAT_SECONDS:-60}
@@ -65,7 +67,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ../frontend
+    image: ghcr.io/evergardener/subscription-manager-frontend:${IMAGE_TAG:-latest}
     depends_on:
       backend: { condition: service_healthy }
     ports:

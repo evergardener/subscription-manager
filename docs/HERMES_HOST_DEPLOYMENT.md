@@ -2,7 +2,7 @@
 
 ## 1. 适用范围
 
-本手册用于将整个仓库复制或克隆到 Hermes 所在的 Linux 主机，然后由 Hermes/运维执行者构建并部署。生产 Compose 只包含 Subscription Manager 自身组件：迁移、Backend、Scheduler、Frontend，以及可选的内置 PostgreSQL。
+本手册用于将部署文件和 Hermes 集成包复制或克隆到 Hermes 所在的 Linux 主机，然后由 Hermes/运维执行者拉取预构建镜像并部署。生产 Compose 只包含 Subscription Manager 自身组件：迁移、Backend、Scheduler、Frontend，以及可选的内置 PostgreSQL；Hermes 主机不构建应用源码。
 
 推荐主机基线：
 
@@ -74,6 +74,17 @@ chmod 0600 .env
 
 设置完整 `DATABASE_URL`，对用户名/密码中的保留字符进行 URL 编码，并按供应商要求启用 TLS。外部数据库应预先创建最小权限角色和空数据库。相关供应商备份、HA 和 TLS 责任不由本 Compose 接管。
 
+### 镜像版本
+
+生产镜像由 GitHub Actions 在完整 CI 通过后发布：
+
+- `ghcr.io/evergardener/subscription-manager-backend`
+- `ghcr.io/evergardener/subscription-manager-frontend`
+
+默认 `IMAGE_TAG=latest`，它只跟随最新成功的 `main` 构建。需要可复现部署或回滚时，使用同一提交对应的 `sha-<40 位 Git commit>` 标签。`main` 也指向最新成功的主分支构建；推送 `v*` Git 标签会额外发布 SemVer 标签。
+
+首次工作流发布后，仓库所有者必须在 GitHub 上分别进入两个 Package 的 **Package settings → Change visibility → Public** 完成一次性公开设置。公开后不可改回私有。公开镜像可匿名拉取，Hermes 主机不需要 GHCR Token；若尚未公开，下面的 `pull` 会返回权限错误。
+
 ## 4. 配置和启动
 
 内置数据库模式：
@@ -81,7 +92,8 @@ chmod 0600 .env
 ```bash
 cd /opt/subscription-manager
 docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager config --quiet
-docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager up -d --build
+docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager pull
+docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager up -d --wait
 docker compose --env-file .env -f deploy/compose.production.yml -p subscription-manager ps --all
 ```
 
@@ -219,14 +231,15 @@ test -n "$LATEST_BACKUP"
 
 升级已有实例：
 
-1. 记录当前 revision、Compose 文件、项目名、数据库名和角色名；
+1. 记录当前 `IMAGE_TAG`、镜像 digest、部署文件 revision、Compose 文件、项目名、数据库名和角色名；
 2. 创建备份及 SHA-256，并在隔离空库验证恢复；
-3. 拉取/复制新 revision；
+3. 拉取/复制经审核的部署文件 revision；
 4. 检查 `.env`，保留该数据卷初始化时的 `POSTGRES_DB`、`POSTGRES_USER` 和密码；
-5. 运行 `config --quiet` 后执行 `up -d --build`；
-6. 验证 migration、订阅数量、ready、UI、Hermes 查询和提醒任务。
+5. 将 `IMAGE_TAG` 设为目标 `latest`、SemVer 或不可变 `sha-*` 标签；
+6. 运行 `config --quiet`、`pull`，再执行 `up -d --wait`；
+7. 记录实际镜像 digest，并验证 migration、订阅数量、ready、UI、Hermes 查询和提醒任务。
 
-不要通过修改 `POSTGRES_DB`/`POSTGRES_USER` 给已有 volume 重命名，也不要执行 `down --volumes`。迁移后需要回滚时，不应直接跨 migration 降级旧代码；应将已验证备份恢复到新的空数据库/volume，验证后切换。
+应用回滚时，将 `IMAGE_TAG` 改为此前记录的 `sha-*` 标签后重新 `pull` 和 `up -d --wait`。不要通过修改 `POSTGRES_DB`/`POSTGRES_USER` 给已有 volume 重命名，也不要执行 `down --volumes`。迁移后需要回滚时，不应直接跨 migration 降级旧代码；应将已验证备份恢复到新的空数据库/volume，验证后切换。
 
 ## 11. 交付记录
 

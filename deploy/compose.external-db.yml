@@ -1,5 +1,7 @@
 name: subscription-manager
 
+x-backend-image: &backend-image ghcr.io/evergardener/subscription-manager-backend:${IMAGE_TAG:-latest}
+
 x-backend-environment: &backend-environment
   DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL for PostgreSQL 16 or newer}
   ENVIRONMENT: production
@@ -17,14 +19,14 @@ x-backend-environment: &backend-environment
 
 services:
   migrate:
-    build: ../backend
+    image: *backend-image
     environment: *backend-environment
     command: ["alembic", "upgrade", "head"]
     networks: [internal]
     restart: "no"
 
   backend:
-    build: ../backend
+    image: *backend-image
     environment: *backend-environment
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -37,7 +39,7 @@ services:
     restart: unless-stopped
 
   scheduler:
-    build: ../backend
+    image: *backend-image
     environment:
       <<: *backend-environment
       SCHEDULER_HEARTBEAT_SECONDS: ${SCHEDULER_HEARTBEAT_SECONDS:-60}
@@ -49,7 +51,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ../frontend
+    image: ghcr.io/evergardener/subscription-manager-frontend:${IMAGE_TAG:-latest}
     depends_on:
       backend: { condition: service_healthy }
     ports:

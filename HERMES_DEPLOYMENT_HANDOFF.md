@@ -8,7 +8,7 @@
 请进入 Subscription Manager 仓库，完整阅读 HERMES_DEPLOYMENT_HANDOFF.md 及其标记的必读文档。
 先只读检查本机 Docker、端口、反向代理、现有 Compose/数据和 Hermes Skill/密钥/周期任务机制，
 向我报告部署模式及需要我提供的域名或外部数据库选择；不要输出 secret。
-条件明确后按文档构建部署、初始化、安装整个 hermes/ 集成包并创建唯一 Reminder Consumer，
+条件明确后按文档拉取预构建镜像并部署、初始化、安装整个 hermes/ 集成包并创建唯一 Reminder Consumer，
 完成全部验收和首个可恢复备份。禁止 down --volumes，已有实例必须先备份并保留原数据库身份。
 每个经验证的仓库变更都提交并推送；主机级配置只做任务所需的最小变更。
 ```
@@ -39,7 +39,7 @@
         ↓
 创建受保护的 .env 并验证 Compose
         ↓
-构建、迁移、启动，验证 loopback ready
+拉取镜像、迁移、启动，验证 loopback ready
         ↓
 配置用户自有 HTTPS 反向代理
         ↓
