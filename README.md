@@ -177,6 +177,7 @@ Run the isolated 10,000-subscription P95 gate with:
 
 ## Authoritative documents
 
+- [Changelog](CHANGELOG.md)
 - [Development specification](docs/Hermes_Subscription_Manager_Development_Spec.md)
 - [Implementation plan](docs/Hermes_Subscription_Manager_Implementation_Plan.md)
 - [P0 verification record](docs/P0_VERIFICATION.md)
