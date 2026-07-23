@@ -16,6 +16,8 @@ Subscription Manager owns durable business state and timing correctness:
 - reminder rules, due calculation, deduplication, leases, retry state, and outage catch-up;
 - scoped REST APIs and optimistic locking.
 
+Archiving a subscription preserves its historical plans, payments, deliveries, and audit records, while removing it from future event maintenance, upcoming-event and forecast queries, Dashboard renewal totals, and new or claimable reminder deliveries. Restoring it makes its still-relevant future schedule eligible again.
+
 Hermes owns user interaction and final notification delivery:
 
 - natural-language intent resolution and explicit confirmation for important writes;

@@ -210,6 +210,13 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     )
     assert archived.status_code == 200
     assert archived.json()["archived_at"] is not None
+    archived_events = await client.get("/api/v1/events/upcoming?days=366")
+    assert archived_events.status_code == 200
+    assert all(event["subscription_id"] != created.json()["id"] for event in archived_events.json())
+    archived_analytics = await client.get("/api/v1/analytics/summary")
+    assert archived_analytics.status_code == 200
+    assert archived_analytics.json()["expected"] == {}
+    assert all(row["expected"] == "0" for row in archived_analytics.json()["by_vendor"])
     restored_archive = await client.post(
         f"/api/v1/subscriptions/{created.json()['id']}/restore",
         headers={"X-CSRF-Token": csrf},

@@ -125,6 +125,8 @@ async def generate_billing_events(
         return 0
     end = through or date.today() + timedelta(days=366)
     subscription = await session.get(Subscription, plan.subscription_id)
+    if subscription and subscription.archived_at is not None:
+        return 0
     if subscription and subscription.status == SubscriptionStatus.PENDING_CANCEL:
         service_dates = await session.get(ServiceDates, plan.subscription_id)
         if service_dates and service_dates.service_expiry_date:
@@ -166,7 +168,13 @@ async def generate_billing_events(
 
 
 async def roll_billing_events(session: AsyncSession) -> int:
-    plans = (await session.scalars(select(BillingPlan).where(BillingPlan.valid_to.is_(None)))).all()
+    plans = (
+        await session.scalars(
+            select(BillingPlan)
+            .join(Subscription, Subscription.id == BillingPlan.subscription_id)
+            .where(BillingPlan.valid_to.is_(None), Subscription.archived_at.is_(None))
+        )
+    ).all()
     created = 0
     for plan in plans:
         created += await generate_billing_events(session, plan)

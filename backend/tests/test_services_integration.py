@@ -64,6 +64,11 @@ async def test_business_services_generate_replace_audit_and_idempotency(
     old.auto_renew = False
     assert await generate_billing_events(db_session, old, date(2026, 12, 31)) == 0
     old.auto_renew = True
+    subscription.archived_at = datetime.now(UTC)
+    assert await generate_billing_events(db_session, old, date(2026, 12, 31)) == 0
+    subscription.archived_at = None
+    await db_session.flush()
+    await db_session.refresh(subscription)
     assert advance_plan(old, date(2026, 7, 31)) == date(2026, 8, 31)
 
     now = datetime.now(UTC)
@@ -141,8 +146,20 @@ async def test_reminder_services_generate_claim_ack_retry_and_dead(
     db_session.add_all([event, rule])
     await db_session.commit()
     now = scheduled_at(event.event_date, rule.offset_days) + timedelta(minutes=1)
+    subscription.archived_at = datetime.now(UTC)
+    await db_session.commit()
+    assert await generate_deliveries(db_session, settings, now) == (0, 0)
+    subscription.archived_at = None
+    await db_session.commit()
     assert await generate_deliveries(db_session, settings, now) == (1, 0)
     assert await generate_deliveries(db_session, settings, now) == (0, 0)
+    subscription.archived_at = datetime.now(UTC)
+    await db_session.commit()
+    assert (
+        await claim_deliveries(db_session, settings, now, ActorType.HERMES, "hermes-primary") == []
+    )
+    subscription.archived_at = None
+    await db_session.commit()
     claimed = await claim_deliveries(db_session, settings, now, ActorType.HERMES, "hermes-primary")
     assert len(claimed) == 1
     sent = await db_session.get(ReminderDelivery, claimed[0])

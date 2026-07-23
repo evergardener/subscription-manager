@@ -600,9 +600,11 @@ async def upcoming_events(
     items = (
         await session.scalars(
             select(BillingEvent)
+            .join(Subscription, Subscription.id == BillingEvent.subscription_id)
             .where(
                 BillingEvent.event_date.between(date.today(), end),
                 BillingEvent.status == EventStatus.PLANNED,
+                Subscription.archived_at.is_(None),
             )
             .order_by(BillingEvent.event_date)
         )
@@ -621,7 +623,12 @@ async def analytics_summary(
     expected_rows = (
         await session.execute(
             select(BillingEvent.currency, func.sum(BillingEvent.amount))
-            .where(BillingEvent.status == EventStatus.PLANNED, BillingEvent.amount.is_not(None))
+            .join(Subscription, Subscription.id == BillingEvent.subscription_id)
+            .where(
+                BillingEvent.status == EventStatus.PLANNED,
+                BillingEvent.amount.is_not(None),
+                Subscription.archived_at.is_(None),
+            )
             .group_by(BillingEvent.currency)
         )
     ).all()
@@ -634,7 +641,11 @@ async def analytics_summary(
         await session.execute(
             select(Subscription.vendor, BillingEvent.currency, func.sum(BillingEvent.amount))
             .join(BillingEvent, BillingEvent.subscription_id == Subscription.id)
-            .where(BillingEvent.status == EventStatus.PLANNED, BillingEvent.amount.is_not(None))
+            .where(
+                BillingEvent.status == EventStatus.PLANNED,
+                BillingEvent.amount.is_not(None),
+                Subscription.archived_at.is_(None),
+            )
             .group_by(Subscription.vendor, BillingEvent.currency)
         )
     ).all()
@@ -651,7 +662,11 @@ async def analytics_summary(
             .select_from(Subscription)
             .outerjoin(Category, Category.id == Subscription.category_id)
             .join(BillingEvent, BillingEvent.subscription_id == Subscription.id)
-            .where(BillingEvent.status == EventStatus.PLANNED, BillingEvent.amount.is_not(None))
+            .where(
+                BillingEvent.status == EventStatus.PLANNED,
+                BillingEvent.amount.is_not(None),
+                Subscription.archived_at.is_(None),
+            )
             .group_by(Category.name, BillingEvent.currency)
         )
     ).all()

@@ -14,6 +14,7 @@ from app.models.tables import (
     EventStatus,
     ReminderDelivery,
     ReminderRule,
+    Subscription,
 )
 from app.services.business import roll_billing_events
 
@@ -62,10 +63,12 @@ async def generate_deliveries(
                 (ReminderRule.subscription_id == BillingEvent.subscription_id)
                 & (ReminderRule.event_type == BillingEvent.event_type),
             )
+            .join(Subscription, Subscription.id == BillingEvent.subscription_id)
             .where(
                 ReminderRule.enabled.is_(True),
                 BillingEvent.status == EventStatus.PLANNED,
                 BillingEvent.event_date <= event_end,
+                Subscription.archived_at.is_(None),
             )
         )
     ).all()
@@ -121,7 +124,10 @@ async def claim_deliveries(
 ) -> list[uuid.UUID]:
     statement = (
         select(ReminderDelivery)
+        .join(ReminderRule, ReminderRule.id == ReminderDelivery.rule_id)
+        .join(Subscription, Subscription.id == ReminderRule.subscription_id)
         .where(
+            Subscription.archived_at.is_(None),
             ReminderDelivery.scheduled_for <= now,
             or_(
                 ReminderDelivery.status.in_([DeliveryStatus.PENDING, DeliveryStatus.FAILED]),

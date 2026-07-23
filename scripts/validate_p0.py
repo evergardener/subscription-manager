@@ -3,7 +3,6 @@ from typing import Any
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -38,10 +37,21 @@ def validate_ci() -> None:
     workflow = load_yaml(ROOT / ".github" / "workflows" / "ci.yml")
     jobs = workflow.get("jobs")
     assert isinstance(jobs, dict)
-    assert set(jobs) == {"backend", "frontend", "compose"}
+    required_jobs = {
+        "backend",
+        "frontend",
+        "compose",
+        "e2e",
+        "backup-restore",
+        "performance",
+    }
+    assert required_jobs <= set(jobs), f"CI is missing jobs: {required_jobs - set(jobs)}"
     backend_steps = "\n".join(str(step.get("run", "")) for step in jobs["backend"]["steps"])
     frontend_steps = "\n".join(str(step.get("run", "")) for step in jobs["frontend"]["steps"])
     compose_steps = "\n".join(str(step.get("run", "")) for step in jobs["compose"]["steps"])
+    e2e_steps = "\n".join(str(step.get("run", "")) for step in jobs["e2e"]["steps"])
+    backup_steps = "\n".join(str(step.get("run", "")) for step in jobs["backup-restore"]["steps"])
+    performance_steps = "\n".join(str(step.get("run", "")) for step in jobs["performance"]["steps"])
     for command in ("ruff check", "ruff format --check", "mypy", "pytest", "alembic upgrade"):
         assert command in backend_steps, f"backend CI is missing {command}"
     for command in (
@@ -54,6 +64,9 @@ def validate_ci() -> None:
     ):
         assert command in frontend_steps, f"frontend CI is missing {command}"
     assert "docker compose config --quiet" in compose_steps
+    assert "./scripts/verify-e2e.ps1" in e2e_steps
+    assert "./scripts/verify-backup-restore.ps1" in backup_steps
+    assert "./scripts/verify-performance.ps1" in performance_steps
 
 
 def validate_artifacts() -> None:

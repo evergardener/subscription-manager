@@ -6,7 +6,9 @@ Self-hosted subscription and digital-service lifecycle manager implemented from 
 
 ## Current status
 
-P0 through P6 are implemented. The backend provides the domain schema, authentication, core subscription APIs, persistent billing events, payments, audit logs, reminder rules, and a reliable Reminder Outbox. The frontend is an authenticated responsive PWA with the complete management workflow and offline read-only behavior. Hermes can perform routine read/write operations and consume due reminders through scoped Tools.
+P0 through P6.1 are implemented, and the application is connected to Hermes for real-world use. The backend provides the domain schema, authentication, core subscription APIs, persistent billing events, payments, audit logs, reminder rules, and a reliable Reminder Outbox. The frontend is an authenticated responsive PWA with the complete management workflow and offline read-only behavior. Hermes performs routine read/write operations and consumes due reminders through scoped Tools.
+
+Archived subscriptions retain their plans, payments, and audit history for restoration and review, but are excluded from future billing-event maintenance, upcoming-event queries, forecast analytics, Dashboard renewal totals, and reminder delivery.
 
 Included:
 

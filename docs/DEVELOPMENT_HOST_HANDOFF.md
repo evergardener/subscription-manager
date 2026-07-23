@@ -2,13 +2,15 @@
 
 日期：2026-07-18
 
+> 历史快照：本文记录的是项目处于 P0 时的跨主机迁移过程，不代表当前开发状态。项目现已完成 P6.1 并实际接入 Hermes 使用；当前状态、构建和验证命令以根目录 [README](../README.md) 与 [实施计划](./Hermes_Subscription_Manager_Implementation_Plan.md) 为准。
+
 项目：Hermes Subscription Manager
 
 源目录：`C:\Projects\Github\subscription-manager`
 
 目标：迁移到另一台 Windows、macOS 或 Linux 主机继续开发，同时保留 Git 历史并在目标主机重建验证环境。
 
-## 1. 当前状态
+## 1. 当时状态
 
 - P0 代码、依赖锁、静态检查、单元测试、镜像构建和完整 Compose 运行验证已通过。
 - P0 基线提交：`74743c3 chore: establish validated P0 baseline`。
