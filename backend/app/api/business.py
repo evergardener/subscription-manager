@@ -101,6 +101,7 @@ class SubscriptionPatch(BaseModel):
     logo_url: str | None = None
     description: str | None = None
     payment_method_description: str | None = Field(default=None, max_length=200)
+    start_date: date | None = None
     expected_version: int = Field(ge=1)
     billing_plan: BillingPlanInput | None = None
     service_dates: ServiceDatesInput | None = None
@@ -168,6 +169,32 @@ async def current_plan(session: AsyncSession, subscription_id: uuid.UUID) -> Bil
     )
 
 
+async def spend_summaries(
+    session: AsyncSession, subscription_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, dict[str, Any]]:
+    """Aggregate actual payments per subscription, grouped by currency."""
+    if not subscription_ids:
+        return {}
+    rows = (
+        await session.execute(
+            select(
+                Payment.subscription_id,
+                Payment.currency,
+                func.sum(Payment.amount),
+                func.count(Payment.id),
+            )
+            .where(Payment.subscription_id.in_(subscription_ids))
+            .group_by(Payment.subscription_id, Payment.currency)
+        )
+    ).all()
+    summaries: dict[uuid.UUID, dict[str, Any]] = {}
+    for subscription_id, currency, total, count in rows:
+        summary = summaries.setdefault(subscription_id, {"by_currency": {}, "payment_count": 0})
+        summary["by_currency"][currency] = str(total)
+        summary["payment_count"] += count
+    return summaries
+
+
 @router.get("/subscriptions")
 async def list_subscriptions(
     actor: Actor = Depends(get_actor),
@@ -199,8 +226,15 @@ async def list_subscriptions(
             statement.order_by(Subscription.name).offset((page - 1) * page_size).limit(page_size)
         )
     ).all()
+    spends = await spend_summaries(session, [item.id for item, _ in items])
+    rendered = []
+    for item, plan in items:
+        entry = subscription_json(item, plan)
+        if item.id in spends:
+            entry["spend"] = spends[item.id]
+        rendered.append(entry)
     return {
-        "items": [subscription_json(item, plan) for item, plan in items],
+        "items": rendered,
         "page": page,
         "page_size": page_size,
         "total": total,
@@ -287,6 +321,9 @@ async def get_subscription(
     dates = await session.get(ServiceDates, item.id)
     if dates:
         result["service_dates"] = model_dict(dates)
+    spends = await spend_summaries(session, [item.id])
+    if item.id in spends:
+        result["spend"] = spends[item.id]
     return result
 
 

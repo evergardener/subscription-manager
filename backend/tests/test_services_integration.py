@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.security import Actor
 from app.core.config import get_settings
 from app.core.database import get_session_factory
+from app.domain.billing import IntervalUnit, next_occurrence
 from app.models.tables import (
     ActorType,
     BillingEvent,
@@ -52,24 +53,27 @@ async def test_business_services_generate_replace_audit_and_idempotency(
         currency="USD",
         interval_unit="month",
         interval_count=1,
-        anchor_date=date(2026, 7, 31),
-        next_billing_date=date(2026, 7, 31),
+        anchor_date=date.today(),
+        next_billing_date=date.today(),
         auto_renew=True,
         billing_mode="fixed",
     )
     db_session.add(old)
     await db_session.flush()
-    assert await generate_billing_events(db_session, old, date(2026, 10, 31)) == 4
-    assert await generate_billing_events(db_session, old, date(2026, 10, 31)) == 0
+    through = date.today() + timedelta(days=95)
+    assert await generate_billing_events(db_session, old, through) == 4
+    assert await generate_billing_events(db_session, old, through) == 0
     old.auto_renew = False
-    assert await generate_billing_events(db_session, old, date(2026, 12, 31)) == 0
+    assert await generate_billing_events(db_session, old, through) == 0
     old.auto_renew = True
     subscription.archived_at = datetime.now(UTC)
-    assert await generate_billing_events(db_session, old, date(2026, 12, 31)) == 0
+    assert await generate_billing_events(db_session, old, through) == 0
     subscription.archived_at = None
     await db_session.flush()
     await db_session.refresh(subscription)
-    assert advance_plan(old, date(2026, 7, 31)) == date(2026, 8, 31)
+    assert advance_plan(old, date.today()) == next_occurrence(
+        date.today(), IntervalUnit.MONTH, 1
+    )
 
     now = datetime.now(UTC)
     replacement = BillingPlan(

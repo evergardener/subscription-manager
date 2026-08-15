@@ -251,6 +251,85 @@ async def test_session_csrf_scoped_token_revocation_and_actor_headers(
     assert (await client.get("/api/v1/subscriptions", headers=bearer)).status_code == 401
 
 
+async def test_subscription_start_date_patch_and_spend_summary(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    del db_session
+    credentials = {"username": "admin", "password": "correct horse battery staple"}
+    await client.post("/api/v1/auth/bootstrap", json=credentials)
+    login = await client.post("/api/v1/auth/login", json=credentials)
+    csrf = login.json()["csrf_token"]
+    headers = {"X-CSRF-Token": csrf}
+
+    created = await client.post(
+        "/api/v1/subscriptions",
+        headers={**headers, "Idempotency-Key": "spend-summary-create"},
+        json={
+            "name": "Spend Tracker",
+            "start_date": "2026-01-10",
+            "billing_plan": {
+                "amount": "25.000000",
+                "currency": "USD",
+                "interval_unit": "month",
+                "interval_count": 1,
+                "anchor_date": "2026-02-01",
+                "next_billing_date": "2026-02-01",
+                "auto_renew": True,
+                "billing_mode": "fixed",
+            },
+        },
+    )
+    assert created.status_code == 201
+    subscription_id = created.json()["id"]
+    assert created.json()["start_date"] == "2026-01-10"
+    assert "spend" not in created.json()
+
+    moved = await client.patch(
+        f"/api/v1/subscriptions/{subscription_id}",
+        headers=headers,
+        json={
+            "expected_version": created.json()["version"],
+            "start_date": "2026-01-15",
+        },
+    )
+    assert moved.status_code == 200
+    assert moved.json()["start_date"] == "2026-01-15"
+
+    for index, (amount, currency, paid_at) in enumerate(
+        [
+            ("25.000000", "USD", "2026-02-01T08:00:00+00:00"),
+            ("25.000000", "USD", "2026-03-01T08:00:00+00:00"),
+            ("180.000000", "CNY", "2026-03-05T08:00:00+00:00"),
+        ]
+    ):
+        payment = await client.post(
+            f"/api/v1/subscriptions/{subscription_id}/payments",
+            headers={**headers, "Idempotency-Key": f"spend-summary-payment-{index}"},
+            json={
+                "amount": amount,
+                "currency": currency,
+                "paid_at": paid_at,
+                "tax_amount": "0",
+                "source": "manual",
+                "advance_schedule": False,
+            },
+        )
+        assert payment.status_code == 201
+
+    detail = await client.get(f"/api/v1/subscriptions/{subscription_id}")
+    assert detail.status_code == 200
+    assert detail.json()["spend"] == {
+        "by_currency": {"USD": "50.000000", "CNY": "180.000000"},
+        "payment_count": 3,
+    }
+
+    listed = await client.get("/api/v1/subscriptions")
+    assert listed.status_code == 200
+    item = listed.json()["items"][0]
+    assert item["spend"]["by_currency"] == {"USD": "50.000000", "CNY": "180.000000"}
+    assert item["spend"]["payment_count"] == 3
+
+
 async def test_openapi_exposes_p1_to_p3_contracts(client: AsyncClient) -> None:
     response = await client.get("/openapi.json")
     assert response.status_code == 200
