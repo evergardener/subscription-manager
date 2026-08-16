@@ -124,8 +124,9 @@ test("passes vendor and category filters to the analytics summary", async () => 
     return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
   });
 
-  await analyticsSummary({ vendor: "OpenAI", categoryId: "category-1" });
+  await analyticsSummary({ vendor: "OpenAI", categoryId: "category-1", scope: "all" });
 
   expect(capturedUrl).toContain("vendor=OpenAI");
   expect(capturedUrl).toContain("category_id=category-1");
+  expect(capturedUrl).toContain("scope=all");
 });

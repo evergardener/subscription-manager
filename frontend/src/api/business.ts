@@ -30,8 +30,8 @@ export type Subscription = {
 
 export type SubscriptionPage = { items: Subscription[]; page: number; page_size: number; total: number };
 export type EventItem = { id: string; subscription_id: string; event_type: string; event_date: string; amount: string | null; currency: string | null; status: string };
-export type AnalyticsBreakdown = { label: string; currency: string; expected: string; actual: string };
-export type Analytics = { expected_annual: Record<string, string>; actual: Record<string, string>; by_vendor: AnalyticsBreakdown[]; by_category: AnalyticsBreakdown[] };
+export type AnalyticsBreakdown = { label: string; currency: string; expected: string; actual: string; total_actual: string };
+export type Analytics = { expected_annual: Record<string, string>; actual: Record<string, string>; total_actual: Record<string, string>; by_vendor: AnalyticsBreakdown[]; by_category: AnalyticsBreakdown[] };
 export type CategoryItem = { id: string; name: string };
 export type ExchangeRates = { base: "CNY"; date: string; source: string; source_url: string; rates: Record<string, string> };
 export type Payment = { id: string; amount: string; currency: string; paid_at: string; tax_amount: string; source: string; notes: string | null };
@@ -134,10 +134,11 @@ export function upcomingEvents(days = 30, signal?: AbortSignal) {
   return apiRequest<EventItem[]>(`/api/v1/events/upcoming?days=${days}`, { signal });
 }
 
-export function analyticsSummary(filters: { vendor?: string; categoryId?: string } = {}, signal?: AbortSignal) {
+export function analyticsSummary(filters: { vendor?: string; categoryId?: string; scope?: "current" | "all" } = {}, signal?: AbortSignal) {
   const params = new URLSearchParams();
   if (filters.vendor) params.set("vendor", filters.vendor);
   if (filters.categoryId) params.set("category_id", filters.categoryId);
+  if (filters.scope) params.set("scope", filters.scope);
   const suffix = params.size ? `?${params}` : "";
   return apiRequest<Analytics>(`/api/v1/analytics/summary${suffix}`, { signal });
 }
