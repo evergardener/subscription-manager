@@ -8,6 +8,17 @@ export function getSession(signal?: AbortSignal) {
   return apiRequest<Session>("/api/v1/auth/session", { signal });
 }
 
+export function bootstrapRequired(signal?: AbortSignal) {
+  return apiRequest<{ required: boolean }>("/api/v1/auth/bootstrap", { signal });
+}
+
+export function bootstrap(username: string, password: string) {
+  return apiRequest<{ id: string; username: string }>("/api/v1/auth/bootstrap", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
 export function login(username: string, password: string) {
   return apiRequest<LoginResult>("/api/v1/auth/login", {
     method: "POST",
