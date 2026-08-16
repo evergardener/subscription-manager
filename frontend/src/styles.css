@@ -114,11 +114,11 @@ select { width:100%; padding:.8rem .9rem; border:1px solid #cbd8d4; border-radiu
 .text-button { border:0; color:var(--primary); background:transparent; font-weight:750; }
 .detail-breadcrumb { margin-bottom:1.2rem; }
 .detail-breadcrumb a { color:var(--muted); text-decoration:none; }
-.detail-hero { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:1rem; margin-bottom:1.5rem; }
+.detail-hero { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:1rem; margin-bottom:1.5rem; }
 .hero-mark { width:4.2rem; height:4.2rem; border-radius:1rem; font-size:1.8rem; }
 .title-line { display:flex; align-items:center; gap:.8rem; }
-.title-line h1 { margin:0; }
-.detail-actions { display:flex; gap:.55rem; }
+.title-line h1 { margin:0; overflow-wrap:anywhere; }
+.detail-actions { display:flex; flex-wrap:wrap; gap:.55rem; justify-content:flex-end; }
 .detail-grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(17rem,.7fr); gap:1rem; align-items:start; }
 .detail-main,.detail-side { display:grid; gap:1rem; }
 .definition-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; }
