@@ -185,8 +185,8 @@ def filter_result(tool: str, result: Any, client_filter: dict[str, Any] | None) 
         allowed = set(client_filter["currencies"])
         return {
             **result,
-            "expected": {
-                k: v for k, v in result.get("expected", {}).items() if k in allowed
+            "expected_annual": {
+                k: v for k, v in result.get("expected_annual", {}).items() if k in allowed
             },
             "actual": {
                 k: v for k, v in result.get("actual", {}).items() if k in allowed

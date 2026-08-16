@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Any, Literal, cast
 from urllib.parse import urlparse
@@ -652,114 +652,135 @@ async def upcoming_events(
     ]
 
 
+ANALYTICS_UNITS_PER_YEAR = {"day": 365, "week": 52, "month": 12, "year": 1}
+ANALYTICS_QUANTUM = Decimal("0.000001")
+
+
 @router.get("/analytics/summary")
 async def analytics_summary(
-    actor: Actor = Depends(get_actor), session: AsyncSession = Depends(get_session)
+    actor: Actor = Depends(get_actor),
+    session: AsyncSession = Depends(get_session),
+    vendor: str | None = None,
+    category_id: uuid.UUID | None = None,
 ) -> dict[str, Any]:
-    actor.require("analytics:read")
-    expected_rows = (
-        await session.execute(
-            select(BillingEvent.currency, func.sum(BillingEvent.amount))
-            .join(Subscription, Subscription.id == BillingEvent.subscription_id)
-            .where(
-                BillingEvent.status == EventStatus.PLANNED,
-                BillingEvent.amount.is_not(None),
-                Subscription.archived_at.is_(None),
-            )
-            .group_by(BillingEvent.currency)
-        )
-    ).all()
-    actual_rows = (
-        await session.execute(
-            select(Payment.currency, func.sum(Payment.amount)).group_by(Payment.currency)
-        )
-    ).all()
-    expected_vendors = (
-        await session.execute(
-            select(Subscription.vendor, BillingEvent.currency, func.sum(BillingEvent.amount))
-            .join(BillingEvent, BillingEvent.subscription_id == Subscription.id)
-            .where(
-                BillingEvent.status == EventStatus.PLANNED,
-                BillingEvent.amount.is_not(None),
-                Subscription.archived_at.is_(None),
-            )
-            .group_by(Subscription.vendor, BillingEvent.currency)
-        )
-    ).all()
-    actual_vendors = (
-        await session.execute(
-            select(Subscription.vendor, Payment.currency, func.sum(Payment.amount))
-            .join(Payment, Payment.subscription_id == Subscription.id)
-            .group_by(Subscription.vendor, Payment.currency)
-        )
-    ).all()
-    expected_categories = (
-        await session.execute(
-            select(Category.name, BillingEvent.currency, func.sum(BillingEvent.amount))
-            .select_from(Subscription)
-            .outerjoin(Category, Category.id == Subscription.category_id)
-            .join(BillingEvent, BillingEvent.subscription_id == Subscription.id)
-            .where(
-                BillingEvent.status == EventStatus.PLANNED,
-                BillingEvent.amount.is_not(None),
-                Subscription.archived_at.is_(None),
-            )
-            .group_by(Category.name, BillingEvent.currency)
-        )
-    ).all()
-    actual_categories = (
-        await session.execute(
-            select(Category.name, Payment.currency, func.sum(Payment.amount))
-            .select_from(Subscription)
-            .outerjoin(Category, Category.id == Subscription.category_id)
-            .join(Payment, Payment.subscription_id == Subscription.id)
-            .group_by(Category.name, Payment.currency)
-        )
-    ).all()
+    """Annualized expected spend versus trailing-12-month actual payments.
 
-    def breakdown(
-        expected: list[tuple[str | None, str, Decimal]],
-        actual: list[tuple[str | None, str, Decimal]],
-        fallback: str,
-    ) -> list[dict[str, str]]:
-        values: dict[tuple[str, str], dict[str, str]] = {}
-        for label, currency, amount in expected:
-            key = (label or fallback, currency)
-            values[key] = {
-                "label": key[0],
+    ``expected_annual`` is derived from the current billing plan of each
+    non-archived, renewing subscription (amount x billing cycles per year),
+    so a monthly plan always contributes twelve cycles regardless of how the
+    event-generation horizon aligns with the calendar.
+    """
+    actor.require("analytics:read")
+
+    def scope(statement: Any) -> Any:
+        if vendor:
+            statement = statement.where(Subscription.vendor == vendor.strip())
+        if category_id:
+            statement = statement.where(Subscription.category_id == category_id)
+        return statement
+
+    plan_rows = (
+        await session.execute(
+            scope(
+                select(
+                    Subscription.vendor,
+                    Subscription.category_id,
+                    BillingPlan.currency,
+                    BillingPlan.amount,
+                    BillingPlan.interval_unit,
+                    BillingPlan.interval_count,
+                ).join(
+                    BillingPlan,
+                    and_(
+                        BillingPlan.subscription_id == Subscription.id,
+                        BillingPlan.valid_to.is_(None),
+                    ),
+                )
+            ).where(
+                Subscription.archived_at.is_(None),
+                Subscription.status.in_(
+                    [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL]
+                ),
+                BillingPlan.auto_renew.is_(True),
+                BillingPlan.billing_mode == "fixed",
+            )
+        )
+    ).all()
+    payment_rows = (
+        await session.execute(
+            scope(
+                select(
+                    Subscription.vendor,
+                    Subscription.category_id,
+                    Payment.currency,
+                    Payment.amount,
+                ).join(Payment, Payment.subscription_id == Subscription.id)
+            ).where(Payment.paid_at >= datetime.now(UTC) - timedelta(days=365))
+        )
+    ).all()
+    category_names = dict(
+        (await session.execute(select(Category.id, Category.name))).all()
+    )
+
+    expected: dict[str, Decimal] = {}
+    actual: dict[str, Decimal] = {}
+    buckets: dict[str, dict[tuple[str, str], dict[str, Decimal]]] = {
+        "vendor": {},
+        "category": {},
+    }
+
+    def add(
+        group: str, label: str | None, fallback: str, currency: str, key: str, amount: Decimal
+    ) -> None:
+        bucket = buckets[group].setdefault(
+            (label or fallback, currency), {"expected": Decimal(0), "actual": Decimal(0)}
+        )
+        bucket[key] += amount
+
+    for vendor_name, cat_id, currency, amount, unit, count in plan_rows:
+        annual = (amount * ANALYTICS_UNITS_PER_YEAR[unit] / count).quantize(
+            ANALYTICS_QUANTUM
+        )
+        expected[currency] = expected.get(currency, Decimal(0)) + annual
+        add("vendor", vendor_name, "未填写供应商", currency, "expected", annual)
+        add(
+            "category",
+            category_names.get(cat_id) if cat_id else None,
+            "未分类",
+            currency,
+            "expected",
+            annual,
+        )
+    for vendor_name, cat_id, currency, amount in payment_rows:
+        actual[currency] = actual.get(currency, Decimal(0)) + amount
+        add("vendor", vendor_name, "未填写供应商", currency, "actual", amount)
+        add(
+            "category",
+            category_names.get(cat_id) if cat_id else None,
+            "未分类",
+            currency,
+            "actual",
+            amount,
+        )
+
+    def breakdown(group: str) -> list[dict[str, str]]:
+        return [
+            {
+                "label": label,
                 "currency": currency,
-                "expected": str(amount),
-                "actual": "0",
+                "expected": str(values["expected"]),
+                "actual": str(values["actual"]),
             }
-        for label, currency, amount in actual:
-            key = (label or fallback, currency)
-            values.setdefault(
-                key,
-                {"label": key[0], "currency": currency, "expected": "0", "actual": "0"},
-            )["actual"] = str(amount)
-        return sorted(values.values(), key=lambda item: (item["currency"], item["label"]))
+            for (label, currency), values in sorted(
+                buckets[group].items(), key=lambda item: (item[0][1], item[0][0])
+            )
+        ]
 
     return {
-        "expected": {currency: str(amount) for currency, amount in expected_rows},
-        "actual": {currency: str(amount) for currency, amount in actual_rows},
-        "by_vendor": breakdown(
-            [
-                (label, currency, amount)
-                for label, currency, amount in expected_vendors
-                if currency is not None and amount is not None
-            ],
-            [(label, currency, amount) for label, currency, amount in actual_vendors],
-            "未填写供应商",
-        ),
-        "by_category": breakdown(
-            [
-                (label, currency, amount)
-                for label, currency, amount in expected_categories
-                if currency is not None and amount is not None
-            ],
-            [(label, currency, amount) for label, currency, amount in actual_categories],
-            "未分类",
-        ),
+        "expected_annual": {currency: str(amount) for currency, amount in expected.items()},
+        "actual": {currency: str(amount) for currency, amount in actual.items()},
+        "by_vendor": breakdown("vendor"),
+        "by_category": breakdown("category"),
     }
 
 
