@@ -13,6 +13,7 @@ All calls send `Authorization: Bearer <token>`. Create and payment calls also se
 | `subscription_restore` | `POST /api/v1/subscriptions/{id}/restore` | `subscriptions:write` | Yes |
 | `payment_list` | `GET /api/v1/subscriptions/{id}/payments` | `subscriptions:read` | No |
 | `payment_record` | `POST /api/v1/subscriptions/{id}/payments` | `payments:write` | Yes |
+| `payment_update` | `PATCH /api/v1/subscriptions/{id}/payments/{payment_id}` | `payments:write` | Yes |
 | `upcoming_events` | `GET /api/v1/events/upcoming` | `subscriptions:read` | No |
 | `analytics_summary` | `GET /api/v1/analytics/summary` | `analytics:read` | No |
 | `reminder_rules_get` | `GET /api/v1/subscriptions/{id}/reminder-rules` | `subscriptions:read` | No |
@@ -24,6 +25,9 @@ All calls send `Authorization: Bearer <token>`. Create and payment calls also se
 
 `subscription_update` requires the latest `expected_version`. Send the complete replacement `billing_plan` when changing plan fields.
 `subscription_transition` also requires the latest `expected_version`, a reason, and explicit confirmation. `pending_cancel` additionally requires `service_expiry_date`; `active` withdraws a planned cancellation. It only records local lifecycle state and never cancels the vendor account.
+`payment_update` requires the latest payment `expected_version` and explicit confirmation. It can correct amount, currency, paid time, tax, and notes, but cannot rebind the billing event or advance the schedule; use it for fixes, not for recording new periods.
+`analytics_summary` accepts optional `vendor`, `category_id`, and `scope` (`current` = subscriptions that are not expired or archived, `all` = every subscription including expired and archived ones) filters plus a `currencies` allowlist. The response reports `expected_annual` (annualized from current billing plans), `actual` (trailing twelve months of payments), and `total_actual` (all recorded payments since each subscription's start), grouped per currency.
+Subscription list and detail responses include an optional `spend` object with `by_currency` totals and `payment_count`, covering all recorded payments for that subscription. Set `start_date` on the subscription to record when the paid service began; `service_expiry_date` remains the end used for period calculations.
 
 Dates use `YYYY-MM-DD`; timestamps use ISO 8601 with an offset. Money is a decimal string. Currency is a three-letter ISO 4217 code. `days` is 1–366.
 

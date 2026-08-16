@@ -72,7 +72,9 @@ need a GitHub or GHCR credential.
 `IMAGE_TAG=sha-<40-character-commit>` for reproducible deployment and rollback.
 The images support `linux/amd64` and `linux/arm64`.
 
-On a new empty database, create the single local administrator once:
+On a new empty database, open the web UI and the login page switches to a
+first-run setup form that creates the single local administrator and signs in
+immediately. The same can be done through the API:
 
 ```powershell
 Invoke-RestMethod -Method Post http://localhost:8000/api/v1/auth/bootstrap `
@@ -80,9 +82,9 @@ Invoke-RestMethod -Method Post http://localhost:8000/api/v1/auth/bootstrap `
   -Body '{"username":"admin","password":"replace-with-at-least-12-characters"}'
 ```
 
-The bootstrap endpoint returns HTTP 409 after an administrator exists. Login through `POST /api/v1/auth/login`; state-changing Session requests must send the returned CSRF token as `X-CSRF-Token`.
+The bootstrap endpoint returns HTTP 409 after an administrator exists, and `GET /api/v1/auth/bootstrap` reports whether setup is still required. Login through `POST /api/v1/auth/login`; state-changing Session requests must send the returned CSRF token as `X-CSRF-Token`.
 
-An authenticated administrator can change the password from **Settings → Current session → 修改密码**. A successful change revokes every existing browser Session. If the password is forgotten, run the interactive reset locally on the server:
+An authenticated administrator can change the password from **Settings → Current session → 修改密码** and the username from **修改用户名** (verified by the current password; existing sessions stay signed in). A successful password change revokes every existing browser Session. If the password is forgotten, run the interactive reset locally on the server:
 
 ```powershell
 docker compose exec backend python -m app.cli reset-admin-password --username admin
