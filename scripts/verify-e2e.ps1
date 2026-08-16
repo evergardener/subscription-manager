@@ -8,6 +8,10 @@ $env:POSTGRES_DB = 'hermes_e2e'
 $env:BACKEND_PORT = '18000'
 $env:FRONTEND_PORT = '18080'
 $env:E2E_BASE_URL = 'http://localhost:18080'
+# Four sequential browser projects share one proxied client identity; keep the
+# isolated stack well below any chance of tripping the per-minute API limiter.
+$env:API_RATE_LIMIT_PER_MINUTE = '2000'
+$env:LOGIN_RATE_LIMIT_PER_MINUTE = '100'
 
 try {
     $arguments = @('compose', '-p', $project, 'up', '-d')
