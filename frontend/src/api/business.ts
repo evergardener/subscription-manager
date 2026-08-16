@@ -13,6 +13,8 @@ export type BillingPlan = {
 };
 export type ServiceDates = { trial_end_date: string | null; service_expiry_date: string | null; cancellation_deadline: string | null; contract_end_date: string | null };
 
+export type SpendSummary = { by_currency: Record<string, string>; payment_count: number };
+
 export type Subscription = {
   id: string;
   name: string;
@@ -20,8 +22,10 @@ export type Subscription = {
   status: "trial" | "active" | "paused" | "pending_cancel" | "cancelled" | "expired";
   version: number;
   archived_at: string | null;
+  start_date?: string | null;
   billing_plan?: BillingPlan;
   service_dates?: ServiceDates;
+  spend?: SpendSummary;
 };
 
 export type SubscriptionPage = { items: Subscription[]; page: number; page_size: number; total: number };
@@ -37,6 +41,7 @@ export type SubscriptionCreate = {
   name: string;
   vendor?: string;
   status: "trial" | "active";
+  start_date?: string;
   billing_plan: {
     amount: string;
     currency: string;
@@ -79,10 +84,10 @@ export function updateSubscription(item: Subscription, changes: { amount: string
   });
 }
 
-export function updateServiceDates(item: Subscription, service_dates: ServiceDates) {
+export function updateServiceDates(item: Subscription, service_dates: ServiceDates, start_date?: string | null) {
   return apiRequest<Subscription>(`/api/v1/subscriptions/${item.id}`, {
     method: "PATCH",
-    body: JSON.stringify({ expected_version: item.version, service_dates }),
+    body: JSON.stringify({ expected_version: item.version, service_dates, ...(start_date !== undefined ? { start_date } : {}) }),
   });
 }
 

@@ -1,6 +1,6 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
-import { recordPayment, type Subscription, updateSubscription } from "./business";
+import { recordPayment, type Subscription, updateServiceDates, updateSubscription } from "./business";
 
 function parseBody(init: RequestInit | undefined): Record<string, unknown> {
   const body = init?.body;
@@ -60,4 +60,59 @@ test("preserves event binding and explicit schedule advancement for payments", a
   });
 
   expect(parseBody(captured)).toMatchObject({ billing_event_id: "event-1", advance_schedule: true });
+});
+
+test("sends start_date alongside service dates when editing subscription dates", async () => {
+  let captured: RequestInit | undefined;
+  vi.spyOn(globalThis, "fetch").mockImplementation((_input, init) => {
+    captured = init;
+    return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+  });
+  const item = {
+    id: "subscription-1",
+    name: "Example",
+    vendor: null,
+    status: "active",
+    version: 2,
+    archived_at: null,
+    start_date: "2026-01-10",
+  } satisfies Subscription;
+
+  await updateServiceDates(item, {
+    trial_end_date: null,
+    service_expiry_date: "2027-01-10",
+    cancellation_deadline: null,
+    contract_end_date: null,
+  }, "2026-01-15");
+
+  expect(parseBody(captured)).toMatchObject({
+    expected_version: 2,
+    start_date: "2026-01-15",
+    service_dates: { service_expiry_date: "2027-01-10" },
+  });
+});
+
+test("omits start_date when it is not being edited", async () => {
+  let captured: RequestInit | undefined;
+  vi.spyOn(globalThis, "fetch").mockImplementation((_input, init) => {
+    captured = init;
+    return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+  });
+  const item = {
+    id: "subscription-1",
+    name: "Example",
+    vendor: null,
+    status: "active",
+    version: 2,
+    archived_at: null,
+  } satisfies Subscription;
+
+  await updateServiceDates(item, {
+    trial_end_date: null,
+    service_expiry_date: null,
+    cancellation_deadline: null,
+    contract_end_date: null,
+  });
+
+  expect(parseBody(captured)).not.toHaveProperty("start_date");
 });
