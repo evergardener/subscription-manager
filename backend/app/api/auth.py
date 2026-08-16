@@ -49,6 +49,13 @@ class TokenCreate(BaseModel):
         return self
 
 
+@router.get("/bootstrap")
+async def bootstrap_status(session: AsyncSession = Depends(get_session)) -> dict[str, bool]:
+    """Report whether the initial administrator still needs to be created."""
+    exists = await session.scalar(select(func.count()).select_from(User))
+    return {"required": not exists}
+
+
 @router.post("/bootstrap", status_code=201)
 async def bootstrap(
     payload: Credentials, session: AsyncSession = Depends(get_session)

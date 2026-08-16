@@ -330,6 +330,31 @@ async def test_subscription_start_date_patch_and_spend_summary(
     assert item["spend"]["payment_count"] == 3
 
 
+async def test_bootstrap_status_reflects_admin_existence(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    del db_session
+    initial = await client.get("/api/v1/auth/bootstrap")
+    assert initial.status_code == 200
+    assert initial.json() == {"required": True}
+
+    created = await client.post(
+        "/api/v1/auth/bootstrap",
+        json={"username": "admin", "password": "correct horse battery staple"},
+    )
+    assert created.status_code == 201
+
+    afterwards = await client.get("/api/v1/auth/bootstrap")
+    assert afterwards.status_code == 200
+    assert afterwards.json() == {"required": False}
+
+    duplicate = await client.post(
+        "/api/v1/auth/bootstrap",
+        json={"username": "other", "password": "correct horse battery staple"},
+    )
+    assert duplicate.status_code == 409
+
+
 async def test_openapi_exposes_p1_to_p3_contracts(client: AsyncClient) -> None:
     response = await client.get("/openapi.json")
     assert response.status_code == 200
