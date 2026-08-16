@@ -126,6 +126,20 @@ class PaymentInput(BaseModel):
     advance_schedule: bool = False
 
 
+class PaymentPatch(BaseModel):
+    amount: Decimal | None = Field(default=None, gt=0)
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+    paid_at: datetime | None = None
+    tax_amount: Decimal | None = Field(default=None, ge=0)
+    notes: str | None = None
+    expected_version: int = Field(ge=1)
+
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str | None) -> str | None:
+        return validate_money(Decimal(0), value)[1] if value is not None else None
+
+
 class NameInput(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     icon: str | None = None
@@ -622,6 +636,47 @@ async def record_payment(
         result,
         201,
     )
+    await session.commit()
+    return result
+
+
+@router.patch("/subscriptions/{subscription_id}/payments/{payment_id}")
+async def update_payment(
+    subscription_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    payload: PaymentPatch,
+    actor: Actor = Depends(get_actor),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    actor.require("payments:write")
+    item = await session.get(Subscription, subscription_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="subscription not found")
+    payment = await session.get(Payment, payment_id, with_for_update=True)
+    if payment is None or payment.subscription_id != subscription_id:
+        raise HTTPException(status_code=404, detail="payment not found")
+    if payment.version != payload.expected_version:
+        raise HTTPException(status_code=409, detail={"current_version": payment.version})
+    before = model_dict(payment)
+    changes = payload.model_dump(exclude_unset=True, exclude={"expected_version"})
+    for key, value in changes.items():
+        setattr(payment, key, value)
+    if payment.tax_amount > payment.amount:
+        raise HTTPException(status_code=422, detail="tax amount cannot exceed amount")
+    payment.version += 1
+    await session.flush()
+    await session.refresh(payment)
+    add_audit(
+        session,
+        actor,
+        "update",
+        "payment",
+        payment.id,
+        request_id_context.get() or "unknown",
+        before,
+        model_dict(payment),
+    )
+    result = model_dict(payment)
     await session.commit()
     return result
 

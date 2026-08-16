@@ -20,6 +20,7 @@ CONFIRMATION_REQUIRED = {
     "subscription_restore",
     "reminder_rules_set",
     "payment_record",
+    "payment_update",
 }
 ALLOWED_ARGUMENTS = {
     "subscription_search": {"query", "include_archived"},
@@ -64,6 +65,16 @@ ALLOWED_ARGUMENTS = {
         "billing_event_id",
         "advance_schedule",
     },
+    "payment_update": {
+        "subscription_id",
+        "payment_id",
+        "expected_version",
+        "amount",
+        "currency",
+        "paid_at",
+        "tax_amount",
+        "notes",
+    },
     "upcoming_events": {"days", "event_types"},
     "analytics_summary": {"currencies"},
     "reminder_rules_get": {"subscription_id"},
@@ -93,6 +104,7 @@ REQUIRED_ARGUMENTS = {
         "paid_at",
         "advance_schedule",
     },
+    "payment_update": {"subscription_id", "payment_id", "expected_version"},
     "reminder_rules_get": {"subscription_id"},
     "reminder_rules_set": {"subscription_id", "rules"},
     "reminder_ack": {"delivery_id"},
@@ -138,6 +150,13 @@ def endpoint(
             "POST",
             f"/api/v1/subscriptions/{subscription_id}/payments",
             {**arguments, "source": "hermes"},
+        )
+    if tool == "payment_update":
+        payment_id = arguments.pop("payment_id")
+        return (
+            "PATCH",
+            f"/api/v1/subscriptions/{subscription_id}/payments/{payment_id}",
+            arguments,
         )
     if tool == "upcoming_events":
         event_types = arguments.pop("event_types", None)

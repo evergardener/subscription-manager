@@ -455,6 +455,90 @@ async def test_analytics_annualized_expected_and_filters(
     assert by_category_filtered.json()["actual"] == {}
 
 
+async def test_payment_update_supports_correction_flow(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    del db_session
+    credentials = {"username": "admin", "password": "correct horse battery staple"}
+    await client.post("/api/v1/auth/bootstrap", json=credentials)
+    login = await client.post("/api/v1/auth/login", json=credentials)
+    headers = {"X-CSRF-Token": login.json()["csrf_token"]}
+
+    created = await client.post(
+        "/api/v1/subscriptions",
+        headers={**headers, "Idempotency-Key": "payment-update-subscription"},
+        json={
+            "name": "Payment Corrections",
+            "billing_plan": {
+                "amount": "10.000000",
+                "currency": "USD",
+                "interval_unit": "month",
+                "interval_count": 1,
+                "anchor_date": "2026-02-01",
+                "next_billing_date": "2026-02-01",
+                "auto_renew": True,
+                "billing_mode": "fixed",
+            },
+        },
+    )
+    subscription_id = created.json()["id"]
+    payment = await client.post(
+        f"/api/v1/subscriptions/{subscription_id}/payments",
+        headers={**headers, "Idempotency-Key": "payment-update-create"},
+        json={
+            "amount": "10.000000",
+            "currency": "USD",
+            "paid_at": "2026-03-01T08:00:00+00:00",
+            "tax_amount": "0",
+            "source": "manual",
+            "advance_schedule": False,
+        },
+    )
+    assert payment.status_code == 201
+    payment_id = payment.json()["id"]
+
+    corrected = await client.patch(
+        f"/api/v1/subscriptions/{subscription_id}/payments/{payment_id}",
+        headers=headers,
+        json={
+            "expected_version": payment.json()["version"],
+            "amount": "12.500000",
+            "notes": "corrected after card statement",
+        },
+    )
+    assert corrected.status_code == 200
+    assert corrected.json()["amount"] == "12.500000"
+    assert corrected.json()["notes"] == "corrected after card statement"
+    assert corrected.json()["version"] == payment.json()["version"] + 1
+
+    stale = await client.patch(
+        f"/api/v1/subscriptions/{subscription_id}/payments/{payment_id}",
+        headers=headers,
+        json={"expected_version": payment.json()["version"], "amount": "13.000000"},
+    )
+    assert stale.status_code == 409
+
+    invalid_tax = await client.patch(
+        f"/api/v1/subscriptions/{subscription_id}/payments/{payment_id}",
+        headers=headers,
+        json={
+            "expected_version": corrected.json()["version"],
+            "tax_amount": "99.000000",
+        },
+    )
+    assert invalid_tax.status_code == 422
+
+    wrong_subscription = await client.patch(
+        f"/api/v1/subscriptions/{uuid.uuid4()}/payments/{payment_id}",
+        headers=headers,
+        json={"expected_version": corrected.json()["version"], "amount": "1.000000"},
+    )
+    assert wrong_subscription.status_code == 404
+
+    detail = await client.get(f"/api/v1/subscriptions/{subscription_id}")
+    assert detail.json()["spend"]["by_currency"] == {"USD": "12.500000"}
+
+
 async def test_openapi_exposes_p1_to_p3_contracts(client: AsyncClient) -> None:
     response = await client.get("/openapi.json")
     assert response.status_code == 200
