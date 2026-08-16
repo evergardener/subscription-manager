@@ -787,7 +787,9 @@ async def analytics_summary(
             )
         )
     ).all()
-    category_names = dict((await session.execute(select(Category.id, Category.name))).all())
+    category_names: dict[uuid.UUID, str] = {
+        row[0]: row[1] for row in (await session.execute(select(Category.id, Category.name))).all()
+    }
 
     expected: dict[str, Decimal] = {}
     actual: dict[str, Decimal] = {}

@@ -396,7 +396,7 @@ async def test_analytics_annualized_expected_and_filters(
             },
         )
         assert response.status_code == 201
-        return response.json()["id"]
+        return str(response.json()["id"])
 
     monthly_id = await create("Monthly", "OpenAI", "20.000000", "month", 1)
     await create("Quarterly", "OpenAI", "30.000000", "month", 3, category.json()["id"])
