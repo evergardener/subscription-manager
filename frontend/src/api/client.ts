@@ -58,6 +58,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     return undefined as T;
   }
   const value = (await response.json()) as T;
+  window.dispatchEvent(new Event("hermes-api-recovered"));
   if (method === "GET") await writeBusinessCache(path, value);
   return value;
 }

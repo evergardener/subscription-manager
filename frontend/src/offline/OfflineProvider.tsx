@@ -13,7 +13,8 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("online", online);
     window.addEventListener("offline", offlineEvent);
     window.addEventListener("hermes-cache-fallback", fallback);
-    return () => { window.removeEventListener("online", online); window.removeEventListener("offline", offlineEvent); window.removeEventListener("hermes-cache-fallback", fallback); };
+    window.addEventListener("hermes-api-recovered", online);
+    return () => { window.removeEventListener("online", online); window.removeEventListener("offline", offlineEvent); window.removeEventListener("hermes-cache-fallback", fallback); window.removeEventListener("hermes-api-recovered", online); };
   }, []);
   useEffect(() => { document.body.dataset.offline = String(offline); }, [offline]);
   const value = useMemo(() => ({ offline, stale }), [offline, stale]);
