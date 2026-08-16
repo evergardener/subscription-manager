@@ -131,8 +131,8 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   await tokenRow.getByRole("button", { name: "撤销", exact: true }).click();
   await expect(tokenRow.getByText("已撤销", { exact: true })).toBeVisible();
 
-  await page.getByRole("link", { name: "订阅", exact: true }).click();
   await context.setOffline(true);
+  await page.getByRole("link", { name: "订阅", exact: true }).click();
   await expect(page.getByText("离线只读", { exact: true })).toBeVisible();
   await expect(page.getByText(/数据可能已过期|写操作已禁用/)).toBeVisible();
   await expect(page.getByRole("button", { name: "＋ 新建订阅" })).toBeDisabled();
