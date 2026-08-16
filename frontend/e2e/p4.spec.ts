@@ -55,9 +55,9 @@ test("complete authenticated P4 workflow", async ({ page, context }, testInfo) =
   const datesPanel = page.locator("section.panel").filter({ has: page.getByRole("heading", { name: "关键日期" }) });
   await datesPanel.getByRole("button", { name: "编辑", exact: true }).click();
   const datesDialog = page.getByRole("dialog", { name: "编辑关键日期" });
-  await datesDialog.getByLabel("服务到期").fill(nextMonth.toISOString().slice(0, 10));
+  await datesDialog.getByLabel("停止续费到期").fill(nextMonth.toISOString().slice(0, 10));
   await datesDialog.getByRole("button", { name: "保存日期" }).click();
-  await expect(datesPanel).toContainText(`服务到期${nextMonth.toISOString().slice(0, 10)}`);
+  await expect(datesPanel).toContainText(`停止续费到期${nextMonth.toISOString().slice(0, 10)}`);
 
   await page.getByRole("button", { name: "编辑计划" }).click();
   await page.getByLabel("到期后继续自动续费").check();

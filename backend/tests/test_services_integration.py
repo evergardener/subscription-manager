@@ -71,9 +71,7 @@ async def test_business_services_generate_replace_audit_and_idempotency(
     subscription.archived_at = None
     await db_session.flush()
     await db_session.refresh(subscription)
-    assert advance_plan(old, date.today()) == next_occurrence(
-        date.today(), IntervalUnit.MONTH, 1
-    )
+    assert advance_plan(old, date.today()) == next_occurrence(date.today(), IntervalUnit.MONTH, 1)
 
     now = datetime.now(UTC)
     replacement = BillingPlan(

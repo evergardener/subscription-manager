@@ -768,9 +768,7 @@ async def analytics_summary(
                 )
             ).where(
                 Subscription.archived_at.is_(None),
-                Subscription.status.in_(
-                    [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL]
-                ),
+                Subscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL]),
                 BillingPlan.auto_renew.is_(True),
                 BillingPlan.billing_mode == "fixed",
             )
@@ -789,9 +787,7 @@ async def analytics_summary(
             )
         )
     ).all()
-    category_names = dict(
-        (await session.execute(select(Category.id, Category.name))).all()
-    )
+    category_names = dict((await session.execute(select(Category.id, Category.name))).all())
 
     expected: dict[str, Decimal] = {}
     actual: dict[str, Decimal] = {}
@@ -812,9 +808,7 @@ async def analytics_summary(
         bucket[key] += amount
 
     for vendor_name, cat_id, currency, amount, unit, count in plan_rows:
-        annual = (amount * ANALYTICS_UNITS_PER_YEAR[unit] / count).quantize(
-            ANALYTICS_QUANTUM
-        )
+        annual = (amount * ANALYTICS_UNITS_PER_YEAR[unit] / count).quantize(ANALYTICS_QUANTUM)
         expected[currency] = expected.get(currency, Decimal(0)) + annual
         add("vendor", vendor_name, "未填写供应商", currency, "expected", annual)
         add(

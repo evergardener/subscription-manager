@@ -165,9 +165,7 @@ async def change_username(
     if normalized == user.normalized_username and new_username == user.username:
         raise HTTPException(status_code=422, detail="new username must be different")
     taken = await session.scalar(
-        select(User).where(
-            User.normalized_username == normalized, User.id != user.id
-        )
+        select(User).where(User.normalized_username == normalized, User.id != user.id)
     )
     if taken is not None:
         raise HTTPException(status_code=409, detail="username is already taken")

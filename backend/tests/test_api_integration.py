@@ -365,9 +365,7 @@ async def test_analytics_annualized_expected_and_filters(
     login = await client.post("/api/v1/auth/login", json=credentials)
     headers = {"X-CSRF-Token": login.json()["csrf_token"]}
 
-    category = await client.post(
-        "/api/v1/categories", headers=headers, json={"name": "Cloud"}
-    )
+    category = await client.post("/api/v1/categories", headers=headers, json={"name": "Cloud"})
     assert category.status_code == 201
 
     async def create(
@@ -456,9 +454,7 @@ async def test_analytics_annualized_expected_and_filters(
     assert by_category_filtered.json()["expected_annual"] == {"USD": "120.000000"}
     assert by_category_filtered.json()["actual"] == {}
 
-    archived = await client.post(
-        f"/api/v1/subscriptions/{monthly_id}/archive", headers=headers
-    )
+    archived = await client.post(f"/api/v1/subscriptions/{monthly_id}/archive", headers=headers)
     assert archived.status_code == 200
     current = await client.get("/api/v1/analytics/summary")
     assert current.json()["total_actual"] == {}
