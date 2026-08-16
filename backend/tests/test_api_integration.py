@@ -550,6 +550,55 @@ async def test_payment_update_supports_correction_flow(
     assert detail.json()["spend"]["by_currency"] == {"USD": "12.500000"}
 
 
+async def test_change_username_flow(client: AsyncClient, db_session: AsyncSession) -> None:
+    del db_session
+    credentials = {"username": "admin", "password": "correct horse battery staple"}
+    await client.post("/api/v1/auth/bootstrap", json=credentials)
+    login = await client.post("/api/v1/auth/login", json=credentials)
+    headers = {"X-CSRF-Token": login.json()["csrf_token"]}
+
+    session_info = await client.get("/api/v1/auth/session")
+    assert session_info.status_code == 200
+    assert session_info.json()["username"] == "admin"
+    # Each session restore rotates the CSRF token; use the freshest one.
+    headers = {"X-CSRF-Token": session_info.json()["csrf_token"]}
+
+    wrong_password = await client.post(
+        "/api/v1/auth/change-username",
+        headers=headers,
+        json={"new_username": "evergarden", "current_password": "wrong password!!"},
+    )
+    assert wrong_password.status_code == 401
+
+    renamed = await client.post(
+        "/api/v1/auth/change-username",
+        headers=headers,
+        json={"new_username": "evergarden", "current_password": credentials["password"]},
+    )
+    assert renamed.status_code == 200
+    assert renamed.json() == {"username": "evergarden"}
+
+    unchanged = await client.post(
+        "/api/v1/auth/change-username",
+        headers=headers,
+        json={"new_username": "evergarden", "current_password": credentials["password"]},
+    )
+    assert unchanged.status_code == 422
+
+    # The existing session stays valid and now reports the new username.
+    restored = await client.get("/api/v1/auth/session")
+    assert restored.status_code == 200
+    assert restored.json()["username"] == "evergarden"
+
+    old_login = await client.post("/api/v1/auth/login", json=credentials)
+    assert old_login.status_code == 401
+    new_login = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "evergarden", "password": credentials["password"]},
+    )
+    assert new_login.status_code == 200
+
+
 async def test_openapi_exposes_p1_to_p3_contracts(client: AsyncClient) -> None:
     response = await client.get("/openapi.json")
     assert response.status_code == 200

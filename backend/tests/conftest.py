@@ -1,4 +1,11 @@
 import os
+
+# The shared test app keeps one in-memory rate limiter for the whole suite;
+# raise the limits so legitimate test traffic never trips them. Rate limiting
+# itself is covered by test_hardening.py with a dedicated app instance.
+os.environ.setdefault("API_RATE_LIMIT_PER_MINUTE", "1000")
+os.environ.setdefault("LOGIN_RATE_LIMIT_PER_MINUTE", "1000")
+
 from collections.abc import AsyncIterator
 
 import pytest

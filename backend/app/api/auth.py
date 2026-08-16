@@ -12,6 +12,7 @@ from app.core.database import get_session
 from app.core.request_context import request_id_context
 from app.models.tables import ActorType, ApiToken, Session, User
 from app.services.accounts import replace_password
+from app.services.business import add_audit
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 token_router = APIRouter(prefix="/api/v1/api-tokens", tags=["auth"])
@@ -25,6 +26,11 @@ class Credentials(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str = Field(min_length=1, max_length=500)
     new_password: str = Field(min_length=12, max_length=500)
+
+
+class UsernameChange(BaseModel):
+    new_username: str = Field(min_length=1, max_length=100)
+    current_password: str = Field(min_length=1, max_length=500)
 
 
 class TokenCreate(BaseModel):
@@ -113,12 +119,16 @@ async def current_session(
     record = await session.get(Session, actor.session_id, with_for_update=True)
     if record is None or record.revoked_at is not None:
         raise HTTPException(status_code=401, detail="session is no longer active")
+    user = await session.get(User, record.user_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="session is no longer active")
     csrf = new_secret()
     record.csrf_hash = sha256(csrf)
     await session.commit()
     return {
         "actor_type": actor.actor_type.value,
         "actor_id": actor.actor_id,
+        "username": user.username,
         "csrf_token": csrf,
     }
 
@@ -137,6 +147,46 @@ async def logout(
     response.delete_cookie("hermes_session")
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
+
+
+@router.post("/change-username")
+async def change_username(
+    payload: UsernameChange,
+    actor: Actor = Depends(get_actor),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, str]:
+    if actor.session_id is None:
+        raise HTTPException(status_code=401, detail="browser session required")
+    user = await session.get(User, uuid.UUID(actor.actor_id), with_for_update=True)
+    if user is None or not verify_password(user.password_hash, payload.current_password):
+        raise HTTPException(status_code=401, detail="current password is incorrect")
+    new_username = payload.new_username.strip()
+    normalized = new_username.casefold()
+    if normalized == user.normalized_username and new_username == user.username:
+        raise HTTPException(status_code=422, detail="new username must be different")
+    taken = await session.scalar(
+        select(User).where(
+            User.normalized_username == normalized, User.id != user.id
+        )
+    )
+    if taken is not None:
+        raise HTTPException(status_code=409, detail="username is already taken")
+    before = {"username": user.username}
+    user.username = new_username
+    user.normalized_username = normalized
+    await session.flush()
+    add_audit(
+        session,
+        actor,
+        "username_change",
+        "user",
+        user.id,
+        request_id_context.get() or "unknown",
+        before,
+        {"username": user.username},
+    )
+    await session.commit()
+    return {"username": user.username}
 
 
 @router.post("/change-password", status_code=204)
