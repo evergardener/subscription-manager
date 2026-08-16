@@ -1,6 +1,6 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
-import { recordPayment, type Subscription, updateServiceDates, updateSubscription } from "./business";
+import { analyticsSummary, recordPayment, type Subscription, updateServiceDates, updateSubscription } from "./business";
 
 function parseBody(init: RequestInit | undefined): Record<string, unknown> {
   const body = init?.body;
@@ -115,4 +115,17 @@ test("omits start_date when it is not being edited", async () => {
   });
 
   expect(parseBody(captured)).not.toHaveProperty("start_date");
+});
+
+test("passes vendor and category filters to the analytics summary", async () => {
+  let capturedUrl: string | undefined;
+  vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    capturedUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+  });
+
+  await analyticsSummary({ vendor: "OpenAI", categoryId: "category-1" });
+
+  expect(capturedUrl).toContain("vendor=OpenAI");
+  expect(capturedUrl).toContain("category_id=category-1");
 });

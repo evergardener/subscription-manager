@@ -79,6 +79,9 @@ body[data-offline="true"] button:disabled { cursor:not-allowed; filter:grayscale
 .status-pill.archived { color:#58615f; background:#e7ecea; }
 .subscription-card.archived { opacity:.68; }
 .toolbar { display:flex; justify-content:space-between; gap:1rem; margin-bottom:1.2rem; }
+.filter-field { display:flex; align-items:center; gap:.6rem; font-size:.88rem; }
+.filter-group { display:flex; flex-wrap:wrap; gap:1.2rem; }
+.filter-field select { width:auto; min-width:10rem; padding:.55rem .7rem; }
 .search-field { position:relative; display:block; width:min(100%,28rem); }
 .search-field span { position:absolute; left:.8rem; top:.55rem; color:var(--muted); font-size:1.3rem; }
 .search-field input { padding-left:2.4rem; }
