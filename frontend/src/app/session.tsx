@@ -11,6 +11,7 @@ type SessionState = {
   error: string | null;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  rename: (username: string) => void;
 };
 
 const SessionContext = createContext<SessionState | null>(null);
@@ -42,8 +43,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (username: string, password: string) => {
     const result = await login(username, password);
     setCsrfToken(result.csrf_token);
-    setSession({ actor_type: "user", actor_id: result.username });
+    setSession({ actor_type: "user", actor_id: result.username, username: result.username });
     setError(null);
+  }, []);
+
+  const rename = useCallback((username: string) => {
+    setSession((current) => (current ? { ...current, username } : current));
   }, []);
 
   const signOut = useCallback(async () => {
@@ -60,8 +65,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ session, isLoading, error, signIn, signOut }),
-    [session, isLoading, error, signIn, signOut],
+    () => ({ session, isLoading, error, signIn, signOut, rename }),
+    [session, isLoading, error, signIn, signOut, rename],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

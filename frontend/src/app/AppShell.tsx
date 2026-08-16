@@ -26,8 +26,8 @@ export function AppShell() {
           ))}
         </nav>
         <div className="account">
-          <span className="avatar">{session?.actor_id.slice(0, 1).toUpperCase()}</span>
-          <span className="account-name">{session?.actor_id}</span>
+          <span className="avatar">{(session?.username ?? session?.actor_id ?? "?").slice(0, 1).toUpperCase()}</span>
+          <span className="account-name">{session?.username ?? session?.actor_id}</span>
           <button className="icon-button" onClick={() => void signOut()} aria-label="退出登录">↪</button>
         </div>
       </aside>

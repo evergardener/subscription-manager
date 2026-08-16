@@ -1,6 +1,6 @@
 import { apiRequest } from "./client";
 
-export type Session = { actor_type: string; actor_id: string; csrf_token?: string };
+export type Session = { actor_type: string; actor_id: string; username?: string; csrf_token?: string };
 export type LoginResult = { username: string; csrf_token: string };
 export type ApiTokenRecord = { id: string; name: string; actor_type: string; actor_id: string; scopes: string[]; expires_at: string | null; revoked_at: string | null };
 
@@ -34,6 +34,13 @@ export function changePassword(current_password: string, new_password: string) {
   return apiRequest<void>("/api/v1/auth/change-password", {
     method: "POST",
     body: JSON.stringify({ current_password, new_password }),
+  });
+}
+
+export function changeUsername(new_username: string, current_password: string) {
+  return apiRequest<{ username: string }>("/api/v1/auth/change-username", {
+    method: "POST",
+    body: JSON.stringify({ new_username, current_password }),
   });
 }
 
