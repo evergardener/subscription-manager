@@ -709,6 +709,12 @@ async def upcoming_events(
 
 ANALYTICS_UNITS_PER_YEAR = {"day": 365, "week": 52, "month": 12, "year": 1}
 ANALYTICS_QUANTUM = Decimal("0.000001")
+ANALYTICS_CURRENT_STATUSES = (
+    SubscriptionStatus.ACTIVE,
+    SubscriptionStatus.TRIAL,
+    SubscriptionStatus.PAUSED,
+    SubscriptionStatus.PENDING_CANCEL,
+)
 
 
 @router.get("/analytics/summary")
@@ -717,26 +723,35 @@ async def analytics_summary(
     session: AsyncSession = Depends(get_session),
     vendor: str | None = None,
     category_id: uuid.UUID | None = None,
+    scope: Literal["current", "all"] = "current",
 ) -> dict[str, Any]:
-    """Annualized expected spend versus trailing-12-month actual payments.
+    """Annualized expected spend versus actual payments.
 
     ``expected_annual`` is derived from the current billing plan of each
     non-archived, renewing subscription (amount x billing cycles per year),
     so a monthly plan always contributes twelve cycles regardless of how the
-    event-generation horizon aligns with the calendar.
+    event-generation horizon aligns with the calendar. ``actual`` covers the
+    trailing twelve months of payments and ``total_actual`` covers all time.
+    ``scope=current`` only counts subscriptions still in service; ``all``
+    also includes expired, cancelled, and archived ones.
     """
     actor.require("analytics:read")
 
-    def scope(statement: Any) -> Any:
+    def filters(statement: Any) -> Any:
         if vendor:
             statement = statement.where(Subscription.vendor == vendor.strip())
         if category_id:
             statement = statement.where(Subscription.category_id == category_id)
+        if scope == "current":
+            statement = statement.where(
+                Subscription.archived_at.is_(None),
+                Subscription.status.in_(ANALYTICS_CURRENT_STATUSES),
+            )
         return statement
 
     plan_rows = (
         await session.execute(
-            scope(
+            filters(
                 select(
                     Subscription.vendor,
                     Subscription.category_id,
@@ -763,14 +778,15 @@ async def analytics_summary(
     ).all()
     payment_rows = (
         await session.execute(
-            scope(
+            filters(
                 select(
                     Subscription.vendor,
                     Subscription.category_id,
                     Payment.currency,
                     Payment.amount,
+                    Payment.paid_at,
                 ).join(Payment, Payment.subscription_id == Subscription.id)
-            ).where(Payment.paid_at >= datetime.now(UTC) - timedelta(days=365))
+            )
         )
     ).all()
     category_names = dict(
@@ -779,6 +795,8 @@ async def analytics_summary(
 
     expected: dict[str, Decimal] = {}
     actual: dict[str, Decimal] = {}
+    total_actual: dict[str, Decimal] = {}
+    trailing_cutoff = datetime.now(UTC) - timedelta(days=365)
     buckets: dict[str, dict[tuple[str, str], dict[str, Decimal]]] = {
         "vendor": {},
         "category": {},
@@ -788,7 +806,8 @@ async def analytics_summary(
         group: str, label: str | None, fallback: str, currency: str, key: str, amount: Decimal
     ) -> None:
         bucket = buckets[group].setdefault(
-            (label or fallback, currency), {"expected": Decimal(0), "actual": Decimal(0)}
+            (label or fallback, currency),
+            {"expected": Decimal(0), "actual": Decimal(0), "total_actual": Decimal(0)},
         )
         bucket[key] += amount
 
@@ -806,17 +825,28 @@ async def analytics_summary(
             "expected",
             annual,
         )
-    for vendor_name, cat_id, currency, amount in payment_rows:
-        actual[currency] = actual.get(currency, Decimal(0)) + amount
-        add("vendor", vendor_name, "未填写供应商", currency, "actual", amount)
+    for vendor_name, cat_id, currency, amount, paid_at in payment_rows:
+        total_actual[currency] = total_actual.get(currency, Decimal(0)) + amount
+        add("vendor", vendor_name, "未填写供应商", currency, "total_actual", amount)
         add(
             "category",
             category_names.get(cat_id) if cat_id else None,
             "未分类",
             currency,
-            "actual",
+            "total_actual",
             amount,
         )
+        if paid_at >= trailing_cutoff:
+            actual[currency] = actual.get(currency, Decimal(0)) + amount
+            add("vendor", vendor_name, "未填写供应商", currency, "actual", amount)
+            add(
+                "category",
+                category_names.get(cat_id) if cat_id else None,
+                "未分类",
+                currency,
+                "actual",
+                amount,
+            )
 
     def breakdown(group: str) -> list[dict[str, str]]:
         return [
@@ -825,6 +855,7 @@ async def analytics_summary(
                 "currency": currency,
                 "expected": str(values["expected"]),
                 "actual": str(values["actual"]),
+                "total_actual": str(values["total_actual"]),
             }
             for (label, currency), values in sorted(
                 buckets[group].items(), key=lambda item: (item[0][1], item[0][0])
@@ -834,6 +865,7 @@ async def analytics_summary(
     return {
         "expected_annual": {currency: str(amount) for currency, amount in expected.items()},
         "actual": {currency: str(amount) for currency, amount in actual.items()},
+        "total_actual": {currency: str(amount) for currency, amount in total_actual.items()},
         "by_vendor": breakdown("vendor"),
         "by_category": breakdown("category"),
     }

@@ -76,7 +76,7 @@ ALLOWED_ARGUMENTS = {
         "notes",
     },
     "upcoming_events": {"days", "event_types"},
-    "analytics_summary": {"currencies"},
+    "analytics_summary": {"currencies", "vendor", "category_id", "scope"},
     "reminder_rules_get": {"subscription_id"},
     "reminder_rules_set": {"subscription_id", "rules"},
     "reminders_claim": {"limit"},
@@ -163,9 +163,17 @@ def endpoint(
         path = f"/api/v1/events/upcoming?{urlencode(arguments)}"
         return "GET", path, {"event_types": event_types} if event_types else None
     if tool == "analytics_summary":
+        query = {
+            key: arguments[key]
+            for key in ("vendor", "category_id", "scope")
+            if key in arguments
+        }
+        path = "/api/v1/analytics/summary"
+        if query:
+            path = f"{path}?{urlencode(query)}"
         return (
             "GET",
-            "/api/v1/analytics/summary",
+            path,
             {"currencies": arguments.get("currencies")}
             if arguments.get("currencies")
             else None,
@@ -209,6 +217,9 @@ def filter_result(tool: str, result: Any, client_filter: dict[str, Any] | None) 
             },
             "actual": {
                 k: v for k, v in result.get("actual", {}).items() if k in allowed
+            },
+            "total_actual": {
+                k: v for k, v in result.get("total_actual", {}).items() if k in allowed
             },
         }
     return result

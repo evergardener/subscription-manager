@@ -438,6 +438,8 @@ async def test_analytics_annualized_expected_and_filters(
     assert body["expected_annual"] == {"USD": "464.000000"}
     # Only the payment within the trailing 365 days counts.
     assert body["actual"] == {"USD": "20.000000"}
+    # All-time totals include the historical payment.
+    assert body["total_actual"] == {"USD": "420.000000"}
 
     by_vendor = {row["label"]: row for row in body["by_vendor"]}
     assert by_vendor["OpenAI"]["expected"] == "360.000000"
@@ -453,6 +455,15 @@ async def test_analytics_annualized_expected_and_filters(
     )
     assert by_category_filtered.json()["expected_annual"] == {"USD": "120.000000"}
     assert by_category_filtered.json()["actual"] == {}
+
+    archived = await client.post(
+        f"/api/v1/subscriptions/{monthly_id}/archive", headers=headers
+    )
+    assert archived.status_code == 200
+    current = await client.get("/api/v1/analytics/summary")
+    assert current.json()["total_actual"] == {}
+    everything = await client.get("/api/v1/analytics/summary?scope=all")
+    assert everything.json()["total_actual"] == {"USD": "420.000000"}
 
 
 async def test_payment_update_supports_correction_flow(
